@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll Management - MGI ERP / HRIS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global.css?v=2.2.0">
+  <link rel="stylesheet" href="../../assets/css/layout.css?v=2.2.0">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <aside id="app-sidebar"></aside>
+
+    <div id="app-main">
+      <header id="app-header"></header>
+
+      <main class="app-content">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">HRGA Management</li>
+                <li class="breadcrumb-item active" aria-current="page">Payroll</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-0">Payroll & Penggajian Karyawan</h4>
+            <p class="text-muted small mb-0">Kalkulasi penggajian bulanan otomatis terintegrasi absensi, keterlambatan, dan lembur.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" id="btnCalculatePayroll">
+              <i class="bi bi-calculator me-1"></i> Hitung Ulang Periode Ini
+            </button>
+            <button class="btn btn-success btn-sm" id="btnFinalizePayroll">
+              <i class="bi bi-check2-all me-1"></i> Finalisasi Payroll
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & KPI Card Summary -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3">
+              <div class="text-muted small">Total Karyawan Diproses</div>
+              <h4 class="fw-bold text-dark mb-0" id="statEmployees">0</h4>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3">
+              <div class="text-muted small">Total Gaji Bersih (Net)</div>
+              <h4 class="fw-bold text-success mb-0" id="statNetPayout">Rp 0</h4>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3">
+              <div class="text-muted small">Total Lembur Disetujui</div>
+              <h4 class="fw-bold text-primary mb-0" id="statOvertimePayout">Rp 0</h4>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3">
+              <div class="text-muted small">Total Potongan (Telat/Absen)</div>
+              <h4 class="fw-bold text-danger mb-0" id="statDeductions">Rp 0</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex gap-2 align-items-center">
+              <label class="small fw-bold">Periode:</label>
+              <select id="selectMonth" class="form-select form-select-sm" style="width: 140px;"></select>
+              <select id="selectYear" class="form-select form-select-sm" style="width: 100px;"></select>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-3">Karyawan</th>
+                    <th>Gaji Pokok</th>
+                    <th>Tunjangan</th>
+                    <th>Lembur (Jam)</th>
+                    <th>Kompensasi Lembur</th>
+                    <th>Potongan Telat/Absen</th>
+                    <th>Gaji Bersih (Net)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="payrollTableBody">
+                  <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2"></div> Memuat data payroll...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Internal ERP / HRIS Enterprise System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js?v=2.2.0"></script>
+  <script src="../../assets/js/auth.js?v=2.2.0"></script>
+  <script src="../../utils/roles.js?v=2.2.0"></script>
+  <script src="../../components/toast.js?v=2.2.0"></script>
+  <script src="../../components/sidebar.js?v=2.2.0"></script>
+  <script src="../../components/header.js?v=2.2.0"></script>
+  <script src="../../assets/js/hrga/payroll.js?v=2.2.0"></script>
+</body>
+</html>

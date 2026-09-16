@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MGI ERP - Legal Documents</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+</head>
+<body>
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <h4 class="fw-bold text-dark mb-0">Legal Document Management</h4>
+          </div>
+          <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-upload me-1"></i> Upload Document
+            </button>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-flex gap-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search Document...">
+                <select id="categoryFilter" class="form-select w-25">
+                    <option value="">All Categories</option>
+                    <option value="Agreement">Agreement</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Policy">Policy</option>
+                    <option value="Other">Other</option>
+                </select>
+                <select id="statusFilter" class="form-select w-25">
+                    <option value="ACTIVE">Active</option>
+                    <option value="ARCHIVED">Archived</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Document Name</th>
+                                <th>Category</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Date</th>
+                                <th class="pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentTableBody">
+                            <tr><td colspan="6" class="text-center py-4">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content border-0 shadow">
+        <form id="uploadForm">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold">Upload New Document</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Document Name <span class="text-danger">*</span></label>
+                    <input type="text" id="docName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Category <span class="text-danger">*</span></label>
+                    <select id="docCategory" class="form-select" required>
+                      <option value="Agreement">Agreement</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Policy">Policy</option>
+                      <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">Description</label>
+                    <textarea id="docDesc" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">File (Max 25MB) <span class="text-danger">*</span></label>
+                    <input type="file" id="docFile" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" required>
+                </div>
+                <div class="progress d-none mb-2" id="uploadProgressContainer" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="uploadProgressBar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="uploadAlert" class="alert d-none small py-2 mb-0"></div>
+            </div>
+            <div class="modal-footer bg-light border-top-0">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="btnUpload">Upload</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+  
+  <script>
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        currentUser = await checkAuth();
+        if (!currentUser) return;
+        
+        renderSidebar('legal_documents', currentUser);
+        renderHeader(currentUser);
+        
+        await loadDocuments();
+
+        document.getElementById('searchInput').addEventListener('input', debounce(loadDocuments, 500));
+        document.getElementById('categoryFilter').addEventListener('change', loadDocuments);
+        document.getElementById('statusFilter').addEventListener('change', loadDocuments);
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnUpload');
+            const progressContainer = document.getElementById('uploadProgressContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const alertBox = document.getElementById('uploadAlert');
+            
+            btn.disabled = true;
+            progressContainer.classList.remove('d-none');
+            alertBox.classList.add('d-none');
+            progressBar.style.width = '0%';
+
+            const formData = new FormData();
+            formData.append('name', document.getElementById('docName').value);
+            formData.append('category', document.getElementById('docCategory').value);
+            formData.append('description', document.getElementById('docDesc').value);
+            formData.append('file', document.getElementById('docFile').files[0]);
+
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/backend/api/documents/upload.php', true);
+                xhr.withCredentials = true; // IMPORTANT for session cookies!
+                
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        progressBar.style.width = percent + '%';
+                    }
+                };
+                
+                xhr.onload = () => {
+                    let res;
+                    try {
+                        res = JSON.parse(xhr.responseText);
+                    } catch(e) {
+                        res = { success: false, message: 'Server returned invalid JSON.' };
+                    }
+                    if (res.success) {
+                        alertBox.className = 'alert alert-success d-block small py-2 mb-0';
+                        alertBox.textContent = 'Upload completed successfully!';
+                        setTimeout(() => {
+                            bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                            document.getElementById('uploadForm').reset();
+                            alertBox.classList.add('d-none');
+                            progressContainer.classList.add('d-none');
+                            btn.disabled = false;
+                            loadDocuments();
+                        }, 1000);
+                    } else {
+                        alertBox.className = 'alert alert-danger d-block small py-2 mb-0';
+                        alertBox.textContent = res.message || 'Upload failed.';
+                        btn.disabled = false;
+                        progressContainer.classList.add('d-none');
+                    }
+                };
+                
+                xhr.onerror = () => { 
+                    alertBox.className = 'alert alert-danger d-block small py-2 mb-0';
+                    alertBox.textContent = "Upload failed due to network error";
+                    btn.disabled = false;
+                    progressContainer.classList.add('d-none');
+                };
+                xhr.send(formData);
+            } catch (err) {
+                alertBox.className = 'alert alert-danger d-block small py-2 mb-0';
+                alertBox.textContent = err.message || 'Upload failed. Please try again.';
+                btn.disabled = false;
+                progressContainer.classList.add('d-none');
+            }
+        });
+    });
+
+    async function loadDocuments() {
+        const tbody = document.getElementById('documentTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading...</td></tr>';
+        
+        const search = document.getElementById('searchInput').value;
+        const category = document.getElementById('categoryFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        
+        try {
+            const res = await apiGet(`/backend/api/documents/list.php?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&status=${encodeURIComponent(status)}`);
+            
+            if (res.success) {
+                tbody.innerHTML = '';
+                if (res.data.items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No documents found.</td></tr>';
+                    return;
+                }
+                
+                res.data.items.forEach(doc => {
+                    const sizeMb = (doc.file_size / (1024 * 1024)).toFixed(2);
+                    const date = new Date(doc.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="ps-4"><strong>${doc.name}</strong></td>
+                            <td><span class="badge bg-secondary">${doc.category}</span></td>
+                            <td><span class="badge bg-light text-dark border">${doc.file_extension.toUpperCase()}</span></td>
+                            <td>${sizeMb} MB</td>
+                            <td>${date}</td>
+                            <td class="pe-4">
+                                <a href="/frontend/pages/legal/document-detail.html?id=${doc.id}" class="btn btn-sm btn-outline-primary">View / Manage</a>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                throw new Error(res.message);
+            }
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">${err.message || 'Failed to load documents.'}</td></tr>`;
+        }
+    }
+
+    function debounce(func, timeout = 300){
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => { func.apply(this, args); }, timeout);
+        };
+    }
+  </script>
+</body>
+</html>

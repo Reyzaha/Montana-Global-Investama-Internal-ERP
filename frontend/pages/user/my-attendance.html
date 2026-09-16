@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Attendance - MGI ERP / HRIS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1b263b">
+  <link rel="stylesheet" href="../../assets/css/global.css?v=2.2.0">
+  <link rel="stylesheet" href="../../assets/css/layout.css?v=2.2.0">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <aside id="app-sidebar"></aside>
+
+    <div id="app-main">
+      <header id="app-header"></header>
+
+      <main class="app-content">
+        <div class="mb-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+              <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+              <li class="breadcrumb-item">Employee Self Service</li>
+              <li class="breadcrumb-item active" aria-current="page">My Attendance</li>
+            </ol>
+          </nav>
+          <h4 class="fw-bold text-dark mb-0">My Attendance</h4>
+          <p class="text-muted">Riwayat presensi Anda selama 31 hari terakhir.</p>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <!-- Check In & Break Widget -->
+          <div class="col-lg-5 col-xl-5">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body py-4 px-4">
+                <div class="text-center mb-3">
+                  <h3 class="display-6 fw-bold text-dark mb-1" id="digitalClock">--:--:--</h3>
+                  <p class="text-muted small mb-0" id="currentDateText">Waktu Server (WIB)</p>
+                </div>
+
+                <!-- Today Summary Status Badges -->
+                <div class="p-3 bg-light rounded-3 mb-3 border">
+                  <div class="small fw-bold text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    <i class="bi bi-clock-history me-1 text-primary"></i> Status Presensi Hari Ini
+                  </div>
+                  <div class="row g-2 text-center" style="font-size: 0.8rem;">
+                    <div class="col-3">
+                      <div class="p-2 bg-white rounded border">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Masuk</div>
+                        <div class="fw-bold text-dark" id="todayCheckIn">-</div>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="p-2 bg-white rounded border">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Awal Istirahat</div>
+                        <div class="fw-bold text-dark" id="todayBreakStart">-</div>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="p-2 bg-white rounded border">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Selesai Istirahat</div>
+                        <div class="fw-bold text-dark" id="todayBreakEnd">-</div>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                      <div class="p-2 bg-white rounded border">
+                        <div class="text-muted small" style="font-size: 0.68rem;">Pulang</div>
+                        <div class="fw-bold text-dark" id="todayCheckOut">-</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2 Pasang Tombol Absensi -->
+                <!-- 1. Presensi Jam Kerja -->
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center">
+                    <span class="badge bg-primary me-2">1</span> Presensi Jam Kerja
+                  </label>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" id="btnCheckIn" onclick="handleAttendance('checkin')">
+                      <i class="bi bi-box-arrow-in-right me-1"></i> Check In
+                    </button>
+                    <button class="btn btn-outline-secondary flex-fill" id="btnCheckOut" disabled onclick="handleAttendance('checkout')">
+                      <i class="bi bi-box-arrow-right me-1"></i> Check Out
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 2. Presensi Jam Istirahat -->
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold text-muted mb-1 d-flex align-items-center">
+                    <span class="badge bg-warning text-dark me-2">2</span> Presensi Jam Istirahat
+                  </label>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary flex-fill" id="btnBreakStart" disabled onclick="handleAttendance('break_start')">
+                      <i class="bi bi-cup-hot me-1"></i> Mulai Istirahat
+                    </button>
+                    <button class="btn btn-outline-secondary flex-fill" id="btnBreakEnd" disabled onclick="handleAttendance('break_end')">
+                      <i class="bi bi-check2-circle me-1"></i> Selesai Istirahat
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Location & GPS info -->
+                <div class="pt-2 border-top">
+                  <div class="form-check form-switch d-flex justify-content-center gap-2 mb-2">
+                    <input class="form-check-input" type="checkbox" id="bypassLocationCheck">
+                    <label class="form-check-label small text-muted" for="bypassLocationCheck">Bypass Location (Test Mode)</label>
+                  </div>
+                  <div id="locationStatus" class="small text-muted text-center">Mencari lokasi...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- History Table -->
+          <div class="col-lg-7 col-xl-7">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-white border-bottom py-3">
+                <h5 class="card-title fw-bold mb-0">Riwayat Presensi (31 Hari Terakhir)</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <th class="ps-3">Tanggal</th>
+                        <th>Masuk</th>
+                        <th>Awal Istirahat</th>
+                        <th>Selesai Istirahat</th>
+                        <th>Pulang</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                      <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                          <div class="spinner-border spinner-border-sm me-2"></div> Memuat data...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        <!-- Overtime Section -->
+        <div class="row g-4 mb-4">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="card-title fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Pengajuan Lembur (Overtime)</h5>
+                  <small class="text-muted">Kelola permohonan lembur kerja Anda yang terintegrasi dengan persetujuan HRGA & PM.</small>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#overtimeModal">
+                  <i class="bi bi-plus-circle me-1"></i> Ajukan Lembur
+                </button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-3">Tanggal</th>
+                        <th>Jam Mulai</th>
+                        <th>Jam Selesai</th>
+                        <th>Durasi</th>
+                        <th>Alasan / Pekerjaan</th>
+                        <th>Status</th>
+                        <th>Catatan</th>
+                      </tr>
+                    </thead>
+                    <tbody id="overtimeTableBody">
+                      <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                          <div class="spinner-border spinner-border-sm me-2"></div> Memuat data lembur...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Modal Ajukan Lembur -->
+      <div class="modal fade" id="overtimeModal" tabindex="-1" aria-labelledby="overtimeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold" id="overtimeModalLabel"><i class="bi bi-clock-fill text-primary me-2"></i>Form Pengajuan Lembur</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formOvertime">
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="otDate" class="form-label fw-semibold">Tanggal Lembur <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" id="otDate" required>
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label for="otStartTime" class="form-label fw-semibold">Jam Mulai <span class="text-danger">*</span></label>
+                    <input type="time" class="form-control" id="otStartTime" required>
+                  </div>
+                  <div class="col-6">
+                    <label for="otEndTime" class="form-label fw-semibold">Jam Selesai <span class="text-danger">*</span></label>
+                    <input type="time" class="form-control" id="otEndTime" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="otReason" class="form-label fw-semibold">Alasan / Rincian Pekerjaan Lembur <span class="text-danger">*</span></label>
+                  <textarea class="form-control" id="otReason" rows="3" placeholder="Contoh: Deployment sistem & migrasi database client..." required></textarea>
+                </div>
+              </div>
+              <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary" id="btnSubmitOvertime">
+                  <i class="bi bi-send me-1"></i> Kirim Pengajuan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Internal ERP / HRIS Enterprise System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js?v=2.2.0"></script>
+  <script src="../../assets/js/auth.js?v=2.2.0"></script>
+  <script src="../../utils/roles.js?v=2.2.0"></script>
+  <script src="../../components/toast.js?v=2.2.0"></script>
+  <script src="../../components/sidebar.js?v=2.2.0"></script>
+  <script src="../../components/header.js?v=2.2.0"></script>
+  <script src="../../assets/js/user/my-attendance.js?v=2.2.0"></script>
+</body>
+</html>

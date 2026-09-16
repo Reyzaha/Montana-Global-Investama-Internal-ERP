@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email & Account Management - MGI ERP / HRIS</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Design System & Layout -->
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+  <style>
+    .badge-active { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-suspended { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-forwarded { background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+    .badge-archived { background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    .badge-type-personal { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-type-shared { background-color: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+    .badge-type-system { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .badge-type-cs { background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+    .stat-card {
+      border-radius: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--mgi-shadow-lg) !important;
+    }
+
+    .device-link-pill {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 10px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <!-- Breadcrumb & Header Title -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">IT Management</li>
+                <li class="breadcrumb-item active" aria-current="page">Email & Accounts</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-0">Email & Accounts Management</h4>
+            <p class="text-muted small mb-0">Pendataan akun email korporat MGI, fungsi/tujuan operasional, serta keterhubungannya (link) ke user dan device yang digunakan.</p>
+          </div>
+          <div>
+            <button class="btn btn-primary shadow-sm d-flex align-items-center gap-2" onclick="openAddEmailModal()">
+              <i class="bi bi-envelope-plus"></i>
+              <span>Tambah Akun Email</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metrics Stats Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary">
+                  <i class="bi bi-envelope-at fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Total Akun Email</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statTotalEmail">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-info bg-opacity-10 text-info">
+                  <i class="bi bi-laptop fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Linked ke Device</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statLinkedDevice">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success">
+                  <i class="bi bi-check-circle fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Status Aktif</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statActiveEmail">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning">
+                  <i class="bi bi-people fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Shared / Dept Email</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statSharedEmail">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                  <input type="text" id="emailSearchInput" class="form-control border-start-0 ps-0" placeholder="Cari alamat email, fungsi, pemakai, atau kode aset device..." onkeyup="filterEmails()">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select id="emailTypeFilter" class="form-select" onchange="filterEmails()">
+                  <option value="">Semua Tipe Email</option>
+                  <option value="Personal Employee">Personal Employee</option>
+                  <option value="Department / Shared">Department / Shared</option>
+                  <option value="System / Service">System / Service</option>
+                  <option value="Customer Service / External">Customer Service / External</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <select id="emailStatusFilter" class="form-select" onchange="filterEmails()">
+                  <option value="">Semua Status</option>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="forwarded">Forwarded</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div class="col-md-2 d-flex">
+                <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" onclick="loadEmails()">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emails Table Card -->
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-envelope-paper-fill text-primary"></i>
+              <span>Daftar Email & Integrasi Perangkat</span>
+            </h6>
+            <span class="badge bg-light text-dark border" id="totalEmailBadge">Total: 0</span>
+          </div>
+
+          <div class="card-body p-0">
+            <div id="tableStateContainer"></div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0" id="emailsTable">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4">Alamat Email</th>
+                    <th>Tipe & Fungsi / Kegunaan</th>
+                    <th>User Pemegang (Akun)</th>
+                    <th>Device Terhubung (Terpasang)</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="emailsTableBody">
+                  <!-- Generated Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Email Modal (Create & Edit) -->
+  <div class="modal fade" id="emailModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="emailModalTitle">Tambah Akun Email</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="emailForm">
+            <input type="hidden" id="emailId">
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-7">
+                <label class="form-label text-muted small fw-bold">Alamat Email Perusahaan <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
+                  <input type="email" id="emailAddress" class="form-control" placeholder="nama.karyawan@mgi.co.id" required>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label text-muted small fw-bold">Tipe Akun <span class="text-danger">*</span></label>
+                <select id="accountType" class="form-select" required>
+                  <option value="Personal Employee">Personal Employee</option>
+                  <option value="Department / Shared">Department / Shared</option>
+                  <option value="System / Service">System / Service</option>
+                  <option value="Customer Service / External">Customer Service / External</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Fungsi & Kegunaan Email Ini <span class="text-danger">*</span></label>
+              <textarea id="purposeDescription" class="form-control" rows="3" placeholder="Contoh: Digunakan oleh staf Finance untuk korespondensi invoice vendor dan rekonsiliasi bank harian." required></textarea>
+              <div class="form-text small">Jelaskan secara spesifik kegunaan email ini dalam proses bisnis perusahaan.</div>
+            </div>
+
+            <!-- Linking Section -->
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+              <h6 class="fw-bold small text-dark mb-2 d-flex align-items-center gap-2">
+                <i class="bi bi-link-45deg fs-5 text-primary"></i>
+                <span>Keterhubungan (Linking) Akun</span>
+              </h6>
+              <p class="text-muted small mb-3">Tautkan email ini ke karyawan pemilik akun dan perangkat kerja IT di mana email ini disetup.</p>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">Karyawan Pemegang (User)</label>
+                  <select id="primaryUserId" class="form-select" onchange="handleUserLinkChange()">
+                    <option value="">-- Akun Bersama / Non-Personal --</option>
+                  </select>
+                  <div class="form-text small">User yang bertanggung jawab atas akun ini.</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small fw-bold">Device Terhubung (Perangkat Kerja)</label>
+                  <select id="linkedDeviceId" class="form-select">
+                    <option value="">-- Tidak Terhubung ke Device Spesifik --</option>
+                  </select>
+                  <div class="form-text small">Device kantor yang digunakan untuk membuka email ini.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Status Akun <span class="text-danger">*</span></label>
+                <select id="emailStatus" class="form-select" required>
+                  <option value="active">Active (Aktif Digunakan)</option>
+                  <option value="suspended">Suspended (Ditangguhkan)</option>
+                  <option value="forwarded">Forwarded (Diteruskan)</option>
+                  <option value="archived">Archived (Diarsipkan)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Catatan Tambahan (Notes)</label>
+                <input type="text" id="emailNotes" class="form-control" placeholder="Contoh: Backup di NAS lokal, 2FA via Google Authenticator">
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+              <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-primary d-flex align-items-center gap-2" id="btnSaveEmail">
+                <i class="bi bi-check2-circle"></i>
+                <span>Simpan Akun Email</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal fade" id="emailDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Detail Akun Email IT</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="emailDetailModalBody">
+          <!-- Populated by JS -->
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+
+  <script>
+    let allEmails = [];
+    let usersList = [];
+    let devicesList = [];
+    let currentUser = null;
+    let emailModalInstance = null;
+    let emailDetailModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentUser = await checkAuth();
+      if (!currentUser || ![1, 7].includes(parseInt(currentUser.role_id))) {
+        window.location.href = getAppUrl('/frontend/dashboard.html');
+        return;
+      }
+      renderSidebar('emails', currentUser);
+      renderHeader(currentUser);
+
+      emailModalInstance = new bootstrap.Modal(document.getElementById('emailModal'));
+      emailDetailModalInstance = new bootstrap.Modal(document.getElementById('emailDetailModal'));
+
+      document.getElementById('emailForm').addEventListener('submit', handleSaveEmail);
+
+      // Check URL query parameters for filter/search
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialSearch = urlParams.get('search');
+      if (initialSearch) {
+        document.getElementById('emailSearchInput').value = initialSearch;
+      }
+
+      await loadOptions();
+      await loadEmails();
+
+      if (initialSearch) {
+        filterEmails();
+      }
+    });
+
+    async function loadOptions() {
+      const res = await apiGet('/backend/api/it/options.php');
+      if (res.success && res.data) {
+        usersList = res.data.users || [];
+        devicesList = res.data.devices || [];
+        populateSelectOptions();
+      }
+    }
+
+    function populateSelectOptions() {
+      // 1. Users
+      const userSelect = document.getElementById('primaryUserId');
+      userSelect.innerHTML = '<option value="">-- Akun Bersama / Non-Personal --</option>';
+      usersList.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.full_name} (${u.role_name} - ${u.email})`;
+        userSelect.appendChild(opt);
+      });
+
+      // 2. Devices
+      const devSelect = document.getElementById('linkedDeviceId');
+      devSelect.innerHTML = '<option value="">-- Tidak Terhubung ke Device Spesifik --</option>';
+      devicesList.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        let label = `[${d.asset_code}] ${d.brand} ${d.model}`;
+        if (d.serial_number) label += ` | SN: ${d.serial_number}`;
+        if (d.assigned_user_name) label += ` (${d.assigned_user_name})`;
+        opt.textContent = label;
+        opt.dataset.assignedUserId = d.assigned_user_id || '';
+        devSelect.appendChild(opt);
+      });
+    }
+
+    function handleUserLinkChange() {
+      const userId = document.getElementById('primaryUserId').value;
+      const devSelect = document.getElementById('linkedDeviceId');
+
+      // Auto-suggest device owned by this user if none is selected
+      if (userId && !devSelect.value) {
+        const matchingDevice = devicesList.find(d => d.assigned_user_id == userId);
+        if (matchingDevice) {
+          devSelect.value = matchingDevice.id;
+        }
+      }
+    }
+
+    async function loadEmails() {
+      const stateContainer = document.getElementById('tableStateContainer');
+      const tbody = document.getElementById('emailsTableBody');
+      tbody.innerHTML = '';
+      renderLoading('tableStateContainer', 'Memuat daftar akun email...');
+
+      const res = await apiGet('/backend/api/it/emails/index.php');
+      stateContainer.innerHTML = '';
+
+      if (res.success && res.data) {
+        allEmails = res.data.emails || [];
+        updateStats(res.data.stats || {});
+        renderEmailRows(allEmails);
+      } else {
+        renderErrorState('tableStateContainer', res.message || 'Gagal memuat data email', 'loadEmails');
+      }
+    }
+
+    function updateStats(stats) {
+      document.getElementById('statTotalEmail').textContent = stats.total || 0;
+      document.getElementById('statLinkedDevice').textContent = stats.linked_device_count || 0;
+      document.getElementById('statActiveEmail').textContent = stats.active || 0;
+      document.getElementById('statSharedEmail').textContent = stats.shared || 0;
+      document.getElementById('totalEmailBadge').textContent = `Total: ${stats.total || 0}`;
+    }
+
+    function renderEmailRows(emails) {
+      const tbody = document.getElementById('emailsTableBody');
+      tbody.innerHTML = '';
+
+      if (!emails || emails.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-envelope-at fs-1 d-block mb-2 text-secondary"></i>
+              Belum ada data email yang terdaftar. Klik "Tambah Akun Email" untuk menambahkan.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      emails.forEach(e => {
+        const tr = document.createElement('tr');
+
+        // Status badge
+        let statusBadge = '';
+        if (e.status === 'active') statusBadge = '<span class="badge badge-active"><i class="bi bi-check-circle me-1"></i>Active</span>';
+        else if (e.status === 'suspended') statusBadge = '<span class="badge badge-suspended"><i class="bi bi-slash-circle me-1"></i>Suspended</span>';
+        else if (e.status === 'forwarded') statusBadge = '<span class="badge badge-forwarded"><i class="bi bi-arrow-right-circle me-1"></i>Forwarded</span>';
+        else statusBadge = '<span class="badge badge-archived">Archived</span>';
+
+        // Account Type badge
+        let typeBadge = '';
+        if (e.account_type === 'Personal Employee') typeBadge = '<span class="badge badge-type-personal">Personal</span>';
+        else if (e.account_type === 'Department / Shared') typeBadge = '<span class="badge badge-type-shared">Shared / Dept</span>';
+        else if (e.account_type === 'System / Service') typeBadge = '<span class="badge badge-type-system">System Service</span>';
+        else typeBadge = '<span class="badge badge-type-cs">Customer Service</span>';
+
+        // Linked device badge / card
+        let deviceHtml = '';
+        if (e.linked_device_id) {
+          deviceHtml = `
+            <div class="device-link-pill">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-laptop text-primary"></i>
+                <div>
+                  <span class="fw-bold text-dark font-monospace">${escapeHtml(e.device_asset_code)}</span>
+                  <div class="small text-muted">${escapeHtml(e.device_brand)} ${escapeHtml(e.device_model)}</div>
+                  ${e.device_sn ? `<div class="small text-secondary" style="font-size:0.75rem">SN: ${escapeHtml(e.device_sn)}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          deviceHtml = `<span class="text-muted fst-italic small"><i class="bi bi-dash"></i> Tidak terhubung</span>`;
+        }
+
+        // Primary user
+        let userHtml = '';
+        if (e.primary_user_id) {
+          userHtml = `
+            <div class="fw-semibold text-dark">${escapeHtml(e.user_full_name || e.user_email)}</div>
+            <div class="small text-muted">${escapeHtml(e.user_role || '-')}</div>
+          `;
+        } else {
+          userHtml = `<span class="badge bg-light text-secondary border">Shared / Shared Team</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="ps-4">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-envelope-check text-primary fs-5"></i>
+              <div>
+                <span class="fw-bold text-dark">${escapeHtml(e.email_address)}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="mb-1">${typeBadge}</div>
+            <div class="small text-muted text-truncate" style="max-width: 280px;" title="${escapeHtml(e.purpose_description)}">
+              ${escapeHtml(e.purpose_description)}
+            </div>
+          </td>
+          <td>${userHtml}</td>
+          <td>${deviceHtml}</td>
+          <td>${statusBadge}</td>
+          <td class="text-end pe-4">
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-info" title="Lihat Detail Relasi" onclick="viewEmailDetail(${e.id})">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-outline-primary" title="Edit Akun" onclick="openEditEmailModal(${e.id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-outline-danger" title="Hapus" onclick="confirmDeleteEmail(${e.id}, '${escapeHtml(e.email_address)}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterEmails() {
+      const search = document.getElementById('emailSearchInput').value.toLowerCase().trim();
+      const type = document.getElementById('emailTypeFilter').value;
+      const status = document.getElementById('emailStatusFilter').value;
+
+      const filtered = allEmails.filter(e => {
+        const matchesSearch = !search ||
+          (e.email_address && e.email_address.toLowerCase().includes(search)) ||
+          (e.purpose_description && e.purpose_description.toLowerCase().includes(search)) ||
+          (e.user_full_name && e.user_full_name.toLowerCase().includes(search)) ||
+          (e.user_email && e.user_email.toLowerCase().includes(search)) ||
+          (e.device_asset_code && e.device_asset_code.toLowerCase().includes(search)) ||
+          (e.device_sn && e.device_sn.toLowerCase().includes(search)) ||
+          (e.device_brand && e.device_brand.toLowerCase().includes(search)) ||
+          (e.device_model && e.device_model.toLowerCase().includes(search));
+
+        const matchesType = !type || e.account_type === type;
+        const matchesStatus = !status || e.status === status;
+
+        return matchesSearch && matchesType && matchesStatus;
+      });
+
+      renderEmailRows(filtered);
+    }
+
+    function openAddEmailModal() {
+      document.getElementById('emailModalTitle').textContent = 'Tambah Akun Email Baru';
+      document.getElementById('emailId').value = '';
+      document.getElementById('emailForm').reset();
+      document.getElementById('accountType').value = 'Personal Employee';
+      document.getElementById('emailStatus').value = 'active';
+      emailModalInstance.show();
+    }
+
+    function openEditEmailModal(id) {
+      const e = allEmails.find(item => item.id == id);
+      if (!e) return;
+
+      document.getElementById('emailModalTitle').textContent = 'Edit Data Akun Email';
+      document.getElementById('emailId').value = e.id;
+      document.getElementById('emailAddress').value = e.email_address || '';
+      document.getElementById('accountType').value = e.account_type || 'Personal Employee';
+      document.getElementById('purposeDescription').value = e.purpose_description || '';
+      document.getElementById('primaryUserId').value = e.primary_user_id || '';
+      document.getElementById('linkedDeviceId').value = e.linked_device_id || '';
+      document.getElementById('emailStatus').value = e.status || 'active';
+      document.getElementById('emailNotes').value = e.notes || '';
+
+      emailModalInstance.show();
+    }
+
+    async function handleSaveEmail(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btnSaveEmail');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+
+      const id = document.getElementById('emailId').value;
+      const payload = {
+        id: id ? parseInt(id) : null,
+        email_address: document.getElementById('emailAddress').value.trim(),
+        account_type: document.getElementById('accountType').value,
+        purpose_description: document.getElementById('purposeDescription').value.trim(),
+        primary_user_id: document.getElementById('primaryUserId').value || null,
+        linked_device_id: document.getElementById('linkedDeviceId').value || null,
+        status: document.getElementById('emailStatus').value,
+        notes: document.getElementById('emailNotes').value.trim()
+      };
+
+      try {
+        let res;
+        if (id) {
+          res = await apiPost('/backend/api/it/emails/update.php', payload);
+        } else {
+          res = await apiPost('/backend/api/it/emails/create.php', payload);
+        }
+
+        if (res.success) {
+          showToast(res.message || 'Data email berhasil disimpan', 'success');
+          emailModalInstance.hide();
+          await loadEmails();
+        } else {
+          showToast(res.message || 'Gagal menyimpan data email', 'danger');
+        }
+      } catch (err) {
+        showToast('Terjadi kesalahan komunikasi dengan server', 'danger');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="bi bi-check2-circle"></i><span>Simpan Akun Email</span>';
+      }
+    }
+
+    function viewEmailDetail(id) {
+      const e = allEmails.find(item => item.id == id);
+      if (!e) return;
+
+      const container = document.getElementById('emailDetailModalBody');
+      container.innerHTML = `
+        <div class="text-center mb-4">
+          <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex p-3 mb-2">
+            <i class="bi bi-envelope-at fs-2"></i>
+          </div>
+          <h5 class="fw-bold mb-1 text-dark">${escapeHtml(e.email_address)}</h5>
+          <span class="badge bg-primary text-uppercase">${escapeHtml(e.account_type)}</span>
+        </div>
+
+        <div class="mb-3">
+          <h6 class="fw-bold small text-muted text-uppercase">Fungsi & Kegunaan Email</h6>
+          <div class="p-3 bg-light rounded-3 small border">
+            ${escapeHtml(e.purpose_description)}
+          </div>
+        </div>
+
+        <div class="card border mb-3">
+          <div class="card-header bg-light py-2">
+            <span class="fw-bold small text-dark"><i class="bi bi-diagram-3-fill text-primary me-1"></i> Pemetaan Relasi Akun</span>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-6 border-end">
+                <div class="text-muted small mb-1"><i class="bi bi-person me-1"></i> User Pemegang</div>
+                <div class="fw-bold text-dark">${escapeHtml(e.user_full_name || 'Tidak ada user')}</div>
+                <div class="small text-muted">${escapeHtml(e.user_email || '-')}</div>
+                <div class="small text-secondary">${escapeHtml(e.user_role || '-')}</div>
+              </div>
+              <div class="col-6">
+                <div class="text-muted small mb-1"><i class="bi bi-laptop me-1"></i> Device Terhubung</div>
+                ${e.linked_device_id ? `
+                  <div class="fw-bold text-dark font-monospace">${escapeHtml(e.device_asset_code)}</div>
+                  <div class="small text-muted">${escapeHtml(e.device_brand)} ${escapeHtml(e.device_model)}</div>
+                  <div class="small text-secondary">SN: ${escapeHtml(e.device_sn || '-')}</div>
+                  ${e.device_phone ? `<div class="small text-primary">Telp: ${escapeHtml(e.device_phone)}</div>` : ''}
+                ` : `
+                  <div class="text-muted fst-italic small">Tidak ditautkan ke perangkat manapun</div>
+                `}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="list-group list-group-flush border rounded-3 mb-3">
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Status Akun</span>
+            <span class="badge bg-secondary text-uppercase">${escapeHtml(e.status)}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Tanggal Input Data</span>
+            <span>${e.created_at || '-'}</span>
+          </div>
+        </div>
+
+        <div>
+          <h6 class="fw-bold small text-muted text-uppercase">Catatan IT</h6>
+          <div class="p-3 bg-light rounded-3 small border">${escapeHtml(e.notes || 'Tidak ada catatan tambahan.')}</div>
+        </div>
+      `;
+
+      emailDetailModalInstance.show();
+    }
+
+    async function confirmDeleteEmail(id, emailAddress) {
+      if (!confirm(`Apakah Anda yakin ingin menghapus data akun email ${emailAddress}?`)) {
+        return;
+      }
+
+      const res = await apiPost('/backend/api/it/emails/delete.php', { id: id });
+      if (res.success) {
+        showToast(res.message || 'Data email berhasil dihapus', 'success');
+        await loadEmails();
+      } else {
+        showToast(res.message || 'Gagal menghapus email', 'danger');
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. MGI ERP Web Application (PHP 8.2 + Apache)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mgi_erp_app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-mgi_erp}
+      - DB_USER=${DB_USER:-mgi_user}
+      - DB_PASS=${DB_PASSWORD:-mgi_secret_password_123}
+      - APP_TIMEZONE=Asia/Jakarta
+    volumes:
+      - app_uploads:/var/www/html/backend/uploads
+      - app_storage:/var/www/html/backend/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mgi_network
+
+  # ---------------------------------------------------------------------------
+  # 2. Database Service (MariaDB 10.11 / MySQL compatible)
+  # ---------------------------------------------------------------------------
+  db:
+    image: mariadb:10.11
+    container_name: mgi_erp_db
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_super_secure_password}
+      MYSQL_DATABASE: ${DB_NAME:-mgi_erp}
+      MYSQL_USER: ${DB_USER:-mgi_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-mgi_secret_password_123}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Automatically initialize schema on first run
+      - ./database/clean_production_seed.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mgi_network
+
+  # ---------------------------------------------------------------------------
+  # 3. Database Management GUI (phpMyAdmin) - Optional
+  # ---------------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: mgi_erp_pma
+    restart: unless-stopped
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      - db
+    networks:
+      - mgi_network
+
+# -----------------------------------------------------------------------------
+# Persistent Volumes & Networks
+# -----------------------------------------------------------------------------
+volumes:
+  db_data:
+    driver: local
+  app_uploads:
+    driver: local
+  app_storage:
+    driver: local
+
+networks:
+  mgi_network:
+    driver: bridge

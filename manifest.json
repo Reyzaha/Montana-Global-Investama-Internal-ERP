@@ -1,0 +1,22 @@
+{
+  "name": "MGI ERP / HRIS Mobile",
+  "short_name": "MGI ERP",
+  "description": "Sistem Presensi & Operasional Enterprise PT Montana Global Investama",
+  "start_url": "/frontend/pages/user/my-attendance.html",
+  "display": "standalone",
+  "background_color": "#0d1b2a",
+  "theme_color": "#1b263b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/frontend/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/frontend/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

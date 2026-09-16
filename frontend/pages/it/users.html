@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management - MGI ERP / HRIS</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Design System & Layout -->
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <!-- Breadcrumb & Header Title -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">IT Management</li>
+                <li class="breadcrumb-item active" aria-current="page">User Management</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-0">User Management</h4>
+            <p class="text-muted small mb-0">Kelola kredensial akun pengguna, peranan (role), dan status akses sistem.</p>
+          </div>
+          <div>
+            <a href="/frontend/pages/it/create-user.html" class="btn btn-primary shadow-sm d-flex align-items-center gap-2">
+              <i class="bi bi-person-plus-fill"></i>
+              <span>Tambah User Baru</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                  <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Cari email user..." onkeyup="filterUsers()">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select id="roleFilter" class="form-select" onchange="filterUsers()">
+                  <option value="">Semua Role</option>
+                  <option value="1">IT</option>
+                  <option value="2">HRGA</option>
+                  <option value="3">LEGAL</option>
+                  <option value="4">FINANCE</option>
+                  <option value="5">BUSINESS DEVELOPMENT</option>
+                  <option value="6">PM</option>
+                  <option value="7">ADMIN</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <select id="statusFilter" class="form-select" onchange="filterUsers()">
+                  <option value="">Semua Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div class="col-md-2 d-flex">
+                <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" onclick="loadUsers()">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Table Card -->
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold mb-0 text-dark">Daftar Akun Pengguna</h6>
+            <span class="badge bg-light text-dark border" id="totalUsersBadge">Total: 0</span>
+          </div>
+
+          <div class="card-body p-0">
+            <!-- Table Container -->
+            <div id="usersTableContainer" class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th class="ps-4" style="width: 80px;">ID</th>
+                    <th>Email Pengguna</th>
+                    <th>Role / Departemen</th>
+                    <th>MFA Status</th>
+                    <th>Status Akun</th>
+                    <th>Dibuat Pada</th>
+                    <th class="text-end pe-4" style="width: 120px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Loading & Empty States Placeholder -->
+            <div id="tableStateContainer"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Internal ERP / HRIS Enterprise System.
+      </footer>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Edit User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editUserForm">
+            <input type="hidden" id="editUserId">
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Email</label>
+              <input type="email" id="editUserEmail" class="form-control" readonly disabled>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Role / Hak Akses</label>
+              <select id="editUserRole" class="form-select" required>
+                <option value="1">1 - IT</option>
+                <option value="2">2 - HRGA</option>
+                <option value="3">3 - LEGAL</option>
+                <option value="4">4 - FINANCE</option>
+                <option value="5">5 - BUSINESS DEVELOPMENT</option>
+                <option value="6">6 - PM</option>
+                <option value="7">7 - ADMIN</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Status Akun</label>
+              <select id="editUserStatus" class="form-select" required>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Reset Password User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="resetPasswordForm">
+            <input type="hidden" id="resetUserId">
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Email User</label>
+              <input type="email" id="resetUserEmail" class="form-control" readonly disabled>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Password Baru</label>
+              <input type="password" id="resetNewPassword" class="form-control" placeholder="Minimal 8 karakter" minlength="8" required>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-warning">Reset Password</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+
+  <script>
+    let allUsers = [];
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentUser = await checkAuth();
+      if (!currentUser || ![1, 7].includes(parseInt(currentUser.role_id))) {
+        window.location.href = getAppUrl('/frontend/dashboard.html');
+        return;
+      }
+      renderSidebar('users', currentUser);
+      renderHeader(currentUser);
+      loadUsers();
+
+      document.getElementById('editUserForm').addEventListener('submit', handleSaveEditUser);
+      document.getElementById('resetPasswordForm').addEventListener('submit', handleSaveResetPassword);
+    });
+
+    async function loadUsers() {
+      const stateContainer = document.getElementById('tableStateContainer');
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '';
+      renderLoading('tableStateContainer', 'Memuat daftar pengguna...');
+
+      const res = await apiGet('/backend/api/users/index.php');
+      stateContainer.innerHTML = '';
+
+      if (res.success && Array.isArray(res.data)) {
+        allUsers = res.data;
+        renderUserRows(allUsers);
+      } else {
+        renderErrorState('tableStateContainer', res.message || 'Gagal memuat data pengguna', 'loadUsers');
+      }
+    }
+
+    function renderUserRows(users) {
+      const tbody = document.getElementById('usersTableBody');
+      const badge = document.getElementById('totalUsersBadge');
+      tbody.innerHTML = '';
+      badge.textContent = `Total: ${users.length}`;
+
+      if (users.length === 0) {
+        renderEmptyState('tableStateContainer', 'Tidak ada data pengguna yang cocok.', `
+          <a href="/frontend/pages/it/create-user.html" class="btn btn-sm btn-primary">Tambah User Baru</a>
+        `);
+        return;
+      }
+
+      users.forEach(u => {
+        const mfaBadge = u.mfa_enabled == 1 
+          ? '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-shield-check me-1"></i>Active</span>'
+          : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Off</span>';
+
+        const statusBadge = u.status === 'active'
+          ? '<span class="badge bg-success">ACTIVE</span>'
+          : u.status === 'suspended' ? '<span class="badge bg-danger">SUSPENDED</span>'
+          : '<span class="badge bg-secondary">INACTIVE</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="ps-4 fw-semibold text-muted">#${u.id}</td>
+          <td>
+            <div class="fw-semibold text-dark">${u.email}</div>
+          </td>
+          <td>${getRoleBadge(u.role_id)}</td>
+          <td>${mfaBadge}</td>
+          <td>${statusBadge}</td>
+          <td class="small text-muted">${u.created_at || '-'}</td>
+          <td class="text-end pe-4">
+            <div class="dropdown">
+              <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                <li><button class="dropdown-item small" onclick="openEditModal(${u.id}, '${u.email}', ${u.role_id}, '${u.status}')"><i class="bi bi-pencil me-2 text-primary"></i>Edit User</button></li>
+                <li><button class="dropdown-item small" onclick="openResetPasswordModal(${u.id}, '${u.email}')"><i class="bi bi-key me-2 text-warning"></i>Reset Password</button></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item small ${u.status === 'active' ? 'text-danger' : 'text-success'}" onclick="toggleStatus(${u.id}, '${u.status}')">
+                  <i class="bi ${u.status === 'active' ? 'bi-slash-circle' : 'bi-check-circle'} me-2"></i>${u.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'}
+                </button></li>
+              </ul>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const role = document.getElementById('roleFilter').value;
+      const status = document.getElementById('statusFilter').value;
+
+      const filtered = allUsers.filter(u => {
+        const matchQ = u.email.toLowerCase().includes(q);
+        const matchRole = role === '' || u.role_id == role;
+        const matchStatus = status === '' || u.status === status;
+        return matchQ && matchRole && matchStatus;
+      });
+
+      renderUserRows(filtered);
+    }
+
+    function openEditModal(id, email, roleId, status) {
+      document.getElementById('editUserId').value = id;
+      document.getElementById('editUserEmail').value = email;
+      document.getElementById('editUserRole').value = roleId;
+      document.getElementById('editUserStatus').value = status;
+      new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    }
+
+    function openResetPasswordModal(id, email) {
+      document.getElementById('resetUserId').value = id;
+      document.getElementById('resetUserEmail').value = email;
+      document.getElementById('resetNewPassword').value = '';
+      new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+    }
+
+    async function handleSaveEditUser(e) {
+      e.preventDefault();
+      const userId = document.getElementById('editUserId').value;
+      const roleId = document.getElementById('editUserRole').value;
+      const status = document.getElementById('editUserStatus').value;
+
+      const res = await apiPost('/backend/api/users/update.php', {
+        action: 'update_role',
+        user_id: userId,
+        role_id: roleId,
+        status: status
+      });
+
+      if (res.success) {
+        showToast('Berhasil', res.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+        loadUsers();
+      } else {
+        showToast('Gagal', res.message || 'Gagal menyimpan data', 'danger');
+      }
+    }
+
+    async function handleSaveResetPassword(e) {
+      e.preventDefault();
+      const userId = document.getElementById('resetUserId').value;
+      const newPassword = document.getElementById('resetNewPassword').value;
+
+      const res = await apiPost('/backend/api/users/update.php', {
+        action: 'reset_password',
+        user_id: userId,
+        new_password: newPassword
+      });
+
+      if (res.success) {
+        showToast('Berhasil', res.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+      } else {
+        showToast('Gagal', res.message || 'Gagal reset password', 'danger');
+      }
+    }
+
+    async function toggleStatus(userId, currentStatus) {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      if (!confirm(`Apakah Anda yakin ingin mengubah status user ini menjadi ${newStatus}?`)) return;
+
+      const res = await apiPost('/backend/api/users/update.php', {
+        action: 'toggle_status',
+        user_id: userId,
+        status: newStatus
+      });
+
+      if (res.success) {
+        showToast('Berhasil', res.message, 'success');
+        loadUsers();
+      } else {
+        showToast('Gagal', res.message || 'Gagal mengubah status', 'danger');
+      }
+    }
+  </script>
+</body>
+</html>
+

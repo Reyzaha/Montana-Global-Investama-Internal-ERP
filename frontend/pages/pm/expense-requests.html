@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approve Pengajuan Biaya - Project Manager MGI</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Design System & Layout -->
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <!-- Breadcrumb & Header Title -->
+        <div class="mb-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+              <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+              <li class="breadcrumb-item">PM Management</li>
+              <li class="breadcrumb-item active" aria-current="page">Approve Pengajuan Biaya</li>
+            </ol>
+          </nav>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <h4 class="fw-bold text-dark mb-1">Persetujuan Pengajuan Biaya</h4>
+              <p class="text-muted mb-0">Evaluasi dan berikan persetujuan tiket pengajuan biaya operasional/project dari HRGA.</p>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" onclick="loadExpenseRequests()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
+              </button>
+              <button class="btn btn-outline-primary btn-sm" onclick="printExpenseList()">
+                <i class="bi bi-printer me-1"></i> Cetak Rekap Laporan
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs: Pending, Approved History, Rejected History -->
+        <ul class="nav nav-pills mb-4 gap-2">
+          <li class="nav-item">
+            <button class="nav-link active fw-semibold" id="tabPmPending" onclick="switchPmTab('pending_pm')">
+              <i class="bi bi-hourglass-split me-1"></i> Menunggu Review PM
+              <span class="badge bg-warning text-dark ms-1" id="badgePmPending">0</span>
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link fw-semibold" id="tabPmApproved" onclick="switchPmTab('approved_history')">
+              <i class="bi bi-check-circle me-1"></i> Riwayat Disetujui (Approved)
+              <span class="badge bg-success ms-1" id="badgePmApproved">0</span>
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link fw-semibold" id="tabPmRejected" onclick="switchPmTab('rejected')">
+              <i class="bi bi-x-circle me-1"></i> Riwayat Ditolak (Rejected)
+              <span class="badge bg-danger ms-1" id="badgePmRejected">0</span>
+            </button>
+          </li>
+        </ul>
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning h-100">
+              <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase">Menunggu Review PM</div>
+                <h4 class="fw-bold mt-1 mb-0 text-warning" id="countPending">-</h4>
+                <div class="small text-muted mt-1" id="amountPending">Rp 0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
+              <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase">Disetujui PM (Total)</div>
+                <h4 class="fw-bold mt-1 mb-0 text-success" id="countApproved">-</h4>
+                <div class="small text-muted mt-1">Termasuk belanja & verifikasi</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-info h-100">
+              <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase">Menunggu Cek Barang</div>
+                <h4 class="fw-bold mt-1 mb-0 text-info" id="countVerif">-</h4>
+                <div class="small text-muted mt-1">Foto barang siap dicek</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-danger h-100">
+              <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase">Ditolak</div>
+                <h4 class="fw-bold mt-1 mb-0 text-danger" id="countRejected">-</h4>
+                <div class="small text-muted mt-1">Permintaan tidak disetujui</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Table Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="card-title fw-bold mb-0" id="tableHeaderTitle">Daftar Tiket Menunggu Review</h5>
+            <div class="d-flex flex-wrap gap-2">
+              <input type="text" id="searchExpense" class="form-control form-control-sm" placeholder="No Tiket / Keperluan..." style="width: 200px;">
+              <select id="filterCategory" class="form-select form-select-sm" style="width: 150px;">
+                <option value="all">Semua Kategori</option>
+                <option value="operational">Operational</option>
+                <option value="project">Project</option>
+                <option value="office_supplies">Office Supplies</option>
+                <option value="travel">Travel</option>
+                <option value="other">Lainnya</option>
+              </select>
+              <button class="btn btn-primary btn-sm" id="btnApplyFilter">
+                <i class="bi bi-funnel"></i> Filter
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4">No. Tiket</th>
+                    <th>Keperluan Biaya</th>
+                    <th>Kategori</th>
+                    <th>Nominal</th>
+                    <th>Diajukan Oleh</th>
+                    <th>Status</th>
+                    <th class="pe-4 text-end">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="expenseTableBody">
+                  <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2" role="status"></div> Memuat data pengajuan biaya...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Project Management System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <!-- Detail & Action Modal -->
+  <div class="modal fade" id="expenseDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-wallet2 text-primary me-2"></i>Review Tiket Pengajuan Biaya
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="expenseDetailBody">
+          <!-- Populated by JS -->
+        </div>
+        <div class="modal-footer" id="expenseDetailFooter">
+          <!-- Action Buttons Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+  <script src="../../assets/js/pm/expense-requests.js"></script>
+</body>
+</html>

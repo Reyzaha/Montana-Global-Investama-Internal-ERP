@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Petty Cash - Project Manager MGI</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Design System & Layout -->
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <!-- Breadcrumb & Header Title -->
+        <div class="mb-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+              <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+              <li class="breadcrumb-item">PM Management</li>
+              <li class="breadcrumb-item active" aria-current="page">Monitoring Petty Cash</li>
+            </ol>
+          </nav>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <h4 class="fw-bold text-dark mb-1">Monitoring Petty Cash (Kas Kecil)</h4>
+              <p class="text-muted mb-0">Pengawasan saldo, mutasi arus kas kecil operasional, dan tracking pencairan biaya perusahaan.</p>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadPettyCashMonitoring()">
+              <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Summary Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-success h-100 bg-white">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="text-muted small fw-semibold text-uppercase">Saldo Kas Saat Ini</div>
+                  <div class="badge bg-success-subtle text-success p-2 rounded-circle">
+                    <i class="bi bi-cash-stack fs-5"></i>
+                  </div>
+                </div>
+                <h3 class="fw-bold text-success mt-2 mb-0" id="currentBalanceDisplay">Rp 0</h3>
+                <div class="small text-muted mt-1">Real-time balance</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-danger h-100 bg-white">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="text-muted small fw-semibold text-uppercase">Pengeluaran Bulan Ini</div>
+                  <div class="badge bg-danger-subtle text-danger p-2 rounded-circle">
+                    <i class="bi bi-arrow-up-right fs-5"></i>
+                  </div>
+                </div>
+                <h4 class="fw-bold text-danger mt-2 mb-0" id="monthOutflowDisplay">Rp 0</h4>
+                <div class="small text-muted mt-1" id="monthTxCount">0 transaksi pengeluaran</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-primary h-100 bg-white">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="text-muted small fw-semibold text-uppercase">Top Up / Masuk Bulan Ini</div>
+                  <div class="badge bg-primary-subtle text-primary p-2 rounded-circle">
+                    <i class="bi bi-arrow-down-left fs-5"></i>
+                  </div>
+                </div>
+                <h4 class="fw-bold text-primary mt-2 mb-0" id="monthInflowDisplay">Rp 0</h4>
+                <div class="small text-muted mt-1">Pengisian kas kecil</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning h-100 bg-white">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="text-muted small fw-semibold text-uppercase">Menunggu ACC Biaya</div>
+                  <div class="badge bg-warning-subtle text-warning p-2 rounded-circle">
+                    <i class="bi bi-hourglass-split fs-5"></i>
+                  </div>
+                </div>
+                <h4 class="fw-bold text-warning mt-2 mb-0" id="pendingExpCount">0 Tiket</h4>
+                <div class="small text-muted mt-1" id="pendingExpAmount">Total: Rp 0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Breakdown Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-lg-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-bottom py-3">
+                <h6 class="fw-bold mb-0 text-dark">
+                  <i class="bi bi-pie-chart me-1 text-primary"></i> Alokasi Pengeluaran per Kategori
+                </h6>
+              </div>
+              <div class="card-body" id="categoryBreakdownContainer">
+                <div class="text-muted small py-3 text-center">Memuat alokasi kategori...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaction History Table -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="card-title fw-bold mb-0">Riwayat Transaksi Terakhir Kas Kecil</h5>
+            <div class="d-flex flex-wrap gap-2">
+              <select id="filterType" class="form-select form-select-sm" style="width: 160px;">
+                <option value="all" selected>Semua Jenis Mutasi</option>
+                <option value="inflow">Kas Masuk (Inflow)</option>
+                <option value="outflow">Kas Keluar (Outflow)</option>
+              </select>
+              <button class="btn btn-outline-secondary btn-sm" onclick="filterTransactions()">
+                <i class="bi bi-funnel"></i> Filter
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4">ID</th>
+                    <th>Waktu / Tanggal</th>
+                    <th>Tipe Mutasi</th>
+                    <th>Tiket Pengajuan</th>
+                    <th>Keterangan</th>
+                    <th>Nominal</th>
+                    <th>Saldo Berjalan</th>
+                    <th class="pe-4 text-end">Bukti Nota</th>
+                  </tr>
+                </thead>
+                <tbody id="pettyCashTableBody">
+                  <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                      <div class="spinner-border spinner-border-sm me-2" role="status"></div> Memuat mutasi kas kecil...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Project Management System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+  <script src="../../assets/js/pm/petty-cash.js"></script>
+</body>
+</html>

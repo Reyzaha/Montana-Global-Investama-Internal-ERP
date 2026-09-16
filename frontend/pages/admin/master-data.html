@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Data Configuration Center - MGI ERP / HRIS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global.css?v=2.2.0">
+  <link rel="stylesheet" href="../../assets/css/layout.css?v=2.2.0">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <aside id="app-sidebar"></aside>
+
+    <div id="app-main">
+      <header id="app-header"></header>
+
+      <main class="app-content">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">Administration</li>
+                <li class="breadcrumb-item active" aria-current="page">Configuration Center</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-0"><i class="bi bi-sliders text-primary me-2"></i>Master Data Configuration Center</h4>
+            <p class="text-muted small mb-0">Pusat pengelolaan master data dinamis lintas divisi (IT, HRGA, Finance) tanpa perubahan kode.</p>
+          </div>
+        </div>
+
+        <!-- Master Tabs -->
+        <ul class="nav nav-tabs mb-4" id="configCenterTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tab-finance-btn" data-bs-toggle="tab" data-bs-target="#tab-finance" type="button" role="tab">
+              <i class="bi bi-wallet2 text-success me-1"></i> Kategori Biaya (Finance)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-hrga-btn" data-bs-toggle="tab" data-bs-target="#tab-hrga" type="button" role="tab">
+              <i class="bi bi-ui-checks text-warning me-1"></i> Sub-Jenis Izin (HRGA)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-it-btn" data-bs-toggle="tab" data-bs-target="#tab-it" type="button" role="tab">
+              <i class="bi bi-shield-lock text-primary me-1"></i> Access Control (IT)
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="configCenterTabContent">
+          <!-- TAB FINANCE: EXPENSE CATEGORIES -->
+          <div class="tab-pane fade show active" id="tab-finance" role="tabpanel">
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <h6 class="fw-bold mb-0">Kategori Pengeluaran, Pagu Anggaran & Aturan Approval</h6>
+                  <small class="text-muted">Kelola kategori pengajuan biaya operasional, batas auto-approve, dan pagu bulanan.</small>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openCreateExpenseCategoryModal()">
+                  <i class="bi bi-plus-circle me-1"></i> Tambah Kategori Biaya
+                </button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-3">Kategori</th>
+                        <th>Kode Sistem</th>
+                        <th>Pagu Bulanan</th>
+                        <th>Realisasi Bulan Ini</th>
+                        <th>Approval PM</th>
+                        <th>Auto-Approve</th>
+                        <th>Kode GL</th>
+                        <th>Status</th>
+                        <th class="text-center pe-3">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="expenseCategoryTableBody">
+                      <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                          <div class="spinner-border spinner-border-sm me-2"></div> Memuat data kategori biaya...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB HRGA: SUB-PERMITS SHORTCUT -->
+          <div class="tab-pane fade" id="tab-hrga" role="tabpanel">
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-body p-4 text-center">
+                <div class="py-4">
+                  <i class="bi bi-calendar2-check text-warning display-4 mb-3 d-inline-block"></i>
+                  <h5 class="fw-bold">Manajemen Sub-Jenis Izin & Cuti Dinamis</h5>
+                  <p class="text-muted" style="max-width: 500px; margin: 0 auto 1.5rem;">
+                    Kelola aturan kuota khusus, kewajiban lampiran medis, dan pembatasan gender untuk seluruh kategori izin kerja.
+                  </p>
+                  <a href="/frontend/pages/hrga/permit-sub-types.html" class="btn btn-primary">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Buka Halaman Pengaturan Sub-Izin
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB IT: ACCESS CONTROL SHORTCUT -->
+          <div class="tab-pane fade" id="tab-it" role="tabpanel">
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-body p-4 text-center">
+                <div class="py-4">
+                  <i class="bi bi-shield-lock text-primary display-4 mb-3 d-inline-block"></i>
+                  <h5 class="fw-bold">Access Control Matrix & Delegasi Karyawan</h5>
+                  <p class="text-muted" style="max-width: 500px; margin: 0 auto 1.5rem;">
+                    Atur izin peranan granular (View, Create, Edit, Delete, Approve) dan pengecualian hak akses per karyawan dengan masa berlaku.
+                  </p>
+                  <a href="/frontend/pages/it/access-control.html" class="btn btn-primary">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Buka Matriks Access Control
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Modal Tambah / Edit Kategori Biaya -->
+      <div class="modal fade" id="modalExpenseCategory" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold" id="modalExpenseCategoryTitle">Kategori Pengeluaran</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formExpenseCategory">
+              <input type="hidden" id="expCatId">
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Nama Kategori <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="expCatName" placeholder="Contoh: Konsumsi Rapat Klien" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Kode Sistem</label>
+                  <input type="text" class="form-control" id="expCatCode" placeholder="Contoh: meeting_meals (otomatis jika kosong)">
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="form-label fw-semibold">Pagu Bulanan (Rp)</label>
+                    <input type="number" class="form-control" id="expCatBudget" placeholder="Contoh: 10000000">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label fw-semibold">Auto-Approve Dibawah</label>
+                    <input type="number" class="form-control" id="expCatAutoApprove" placeholder="Contoh: 250000">
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Kode Akun Buku Besar (GL)</label>
+                  <input type="text" class="form-control" id="expCatGl" placeholder="Contoh: 6103-CSM">
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="expCatRequiresPm" checked>
+                  <label class="form-check-label fw-semibold" for="expCatRequiresPm">Wajib Approval Project Manager (PM)</label>
+                </div>
+              </div>
+              <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveExpCat">Simpan Kategori</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Internal ERP / HRIS Enterprise System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js?v=2.2.0"></script>
+  <script src="../../assets/js/auth.js?v=2.2.0"></script>
+  <script src="../../utils/roles.js?v=2.2.0"></script>
+  <script src="../../components/toast.js?v=2.2.0"></script>
+  <script src="../../components/sidebar.js?v=2.2.0"></script>
+  <script src="../../components/header.js?v=2.2.0"></script>
+  <script src="../../assets/js/admin/master-data.js?v=2.2.0"></script>
+</body>
+</html>

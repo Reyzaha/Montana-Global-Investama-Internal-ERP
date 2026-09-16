@@ -1,0 +1,28 @@
+# Environment and credentials
+.env
+.env.local
+.env.*.local
+
+# Storage & Uploads
+/backend/uploads/*
+!/backend/uploads/.gitkeep
+/backend/storage/*
+!/backend/storage/.gitkeep
+
+# Dependencies
+node_modules/
+web/node_modules/
+web/.next/
+vendor/
+
+# Database dumps / backups
+*.sql.gz
+backups/
+backup_*.sql
+
+# Logs and cache
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

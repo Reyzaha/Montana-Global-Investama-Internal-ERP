@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MGI ERP - My Profile</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+</head>
+<body>
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <h4 class="fw-bold text-dark mb-0">My Profile</h4>
+            <p class="text-muted mb-0">Manage your profile information and update requests.</p>
+          </div>
+          <div id="hrgaDirectEditContainer" class="d-none">
+            <a id="hrgaDirectEditBtn" href="#" class="btn btn-outline-success">
+              <i class="bi bi-person-gear me-1"></i> Edit via HRGA Master
+            </a>
+          </div>
+        </div>
+
+        <div id="pendingWarning" class="alert alert-warning d-none">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Anda memiliki permintaan perubahan profil yang sedang berstatus <strong>PENDING</strong>. Anda tidak dapat mengajukan perubahan baru sebelum permintaan sebelumnya disetujui atau ditolak oleh HRGA.
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 shadow-sm text-center">
+                    <div class="card-body py-5">
+                        <img id="profileImage" src="/frontend/assets/images/default-avatar.png" class="rounded-circle mb-3" width="150" height="150" style="object-fit:cover" alt="Profile">
+                        <h5 class="fw-bold mb-1" id="profileNameDisplay">Loading...</h5>
+                        <p class="text-muted mb-3" id="profilePositionDisplay"></p>
+                        
+                        <div class="d-grid">
+                            <label for="photoUpload" class="btn btn-outline-primary" id="btnUploadPhoto">
+                                <i class="bi bi-camera"></i> Change Photo
+                            </label>
+                            <input type="file" id="photoUpload" class="d-none" accept="image/jpeg,image/png,image/webp">
+                        </div>
+                        <small class="text-muted mt-2 d-block">Max: 10MB (JPG, PNG, WEBP)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <form id="profileForm">
+                            <h5 class="fw-bold mb-3 border-bottom pb-2">Basic Information</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Email</label>
+                                    <input type="email" class="form-control" id="profileEmail" readonly disabled>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Phone Number</label>
+                                    <input type="text" class="form-control" id="profilePhone" name="phone">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted">Address</label>
+                                <textarea class="form-control" id="profileAddress" name="address" rows="2"></textarea>
+                            </div>
+
+                            <h5 class="fw-bold mb-3 border-bottom pb-2">Personal Details</h5>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Marital Status</label>
+                                    <select class="form-select" id="profileMaritalStatus" name="marital_status">
+                                        <option value="">-- Select --</option>
+                                        <option value="LAJANG">Lajang</option>
+                                        <option value="MENIKAH">Menikah</option>
+                                        <option value="CERAI">Cerai</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Dependents (Tanggungan)</label>
+                                    <input type="number" class="form-control" id="profileDependents" name="dependents" min="0">
+                                </div>
+                            </div>
+                            
+                            <h5 class="fw-bold mb-3 border-bottom pb-2 mt-4">Education</h5>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Education Level</label>
+                                    <select class="form-select" id="profileEducation" name="education">
+                                        <option value="">-- Select --</option>
+                                        <option value="SMA / SMK">SMA / SMK</option>
+                                        <option value="S1">S1</option>
+                                        <option value="S2">S2</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Major (Jurusan)</label>
+                                    <input type="text" class="form-control" id="profileMajor" name="major">
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted">School / Institution</label>
+                                <input type="text" class="form-control" id="profileSchool" name="school">
+                            </div>
+
+                            <hr>
+                            
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-primary px-4" id="btnSubmitProfile">Submit Change Request</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+
+  <script>
+    let currentUser = null;
+    let selectedPhotoFile = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        currentUser = await checkAuth();
+        if (!currentUser) return;
+        
+        renderSidebar('my_profile', currentUser);
+        renderHeader(currentUser);
+        
+        if ([2, 7].includes(Number(currentUser.role_id))) {
+            const hrgaContainer = document.getElementById('hrgaDirectEditContainer');
+            const hrgaBtn = document.getElementById('hrgaDirectEditBtn');
+            if (hrgaContainer && hrgaBtn) {
+                hrgaBtn.href = `/frontend/pages/hrga/employee-detail.html?id=${currentUser.id}`;
+                hrgaContainer.classList.remove('d-none');
+            }
+        }
+
+        await loadProfile();
+
+        document.getElementById('photoUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast('Error', 'Max file size is 10MB', 'error');
+                    return;
+                }
+                selectedPhotoFile = file;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    document.getElementById('profileImage').src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitProfile');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
+
+            const formData = new FormData(e.target);
+            if (selectedPhotoFile) {
+                formData.append('photo', selectedPhotoFile);
+            }
+
+            try {
+                const res = await apiUpload('/backend/api/profile/index.php', formData);
+                if (res.success) {
+                    showToast('Success', 'Profile change request submitted', 'success');
+                    selectedPhotoFile = null;
+                    await loadProfile();
+                } else {
+                    showToast('Error', res.message, 'error');
+                }
+            } catch (err) {
+                showToast('Error', err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Submit Change Request';
+            }
+        });
+    });
+
+    async function loadProfile() {
+        try {
+            const res = await apiGet('/backend/api/profile/index.php');
+            if (res.success) {
+                const profile = res.data.profile;
+                const req = res.data.pending_request;
+
+                // Fill form
+                document.getElementById('profileNameDisplay').innerText = profile.name || currentUser.email;
+                document.getElementById('profilePositionDisplay').innerText = profile.position || '-';
+                if (profile.photo_path) {
+                    document.getElementById('profileImage').src = '/backend/api/profile/photo.php?id=' + profile.user_id + '&t=' + Date.now();
+                }
+
+                document.getElementById('profileEmail').value = profile.email || '';
+                document.getElementById('profilePhone').value = profile.phone || '';
+                document.getElementById('profileAddress').value = profile.address || '';
+                document.getElementById('profileMaritalStatus').value = profile.marital_status || '';
+                document.getElementById('profileDependents').value = profile.dependents || '';
+                document.getElementById('profileEducation').value = profile.education || '';
+                document.getElementById('profileMajor').value = profile.major || '';
+                document.getElementById('profileSchool').value = profile.school || '';
+
+                if (req) {
+                    document.getElementById('pendingWarning').classList.remove('d-none');
+                    document.getElementById('btnSubmitProfile').disabled = true;
+                    document.getElementById('btnUploadPhoto').classList.add('disabled');
+                    document.getElementById('photoUpload').disabled = true;
+                    
+                    // Highlight pending changes
+                    req.items.forEach(item => {
+                        const el = document.getElementById('profile' + capitalizeFirst(item.field_name));
+                        if (el) {
+                            el.value = item.new_value;
+                            el.classList.add('border-warning');
+                            el.setAttribute('title', 'Pending HRGA approval');
+                        }
+                    });
+                } else {
+                    document.getElementById('pendingWarning').classList.add('d-none');
+                    document.getElementById('btnSubmitProfile').disabled = false;
+                    document.getElementById('btnUploadPhoto').classList.remove('disabled');
+                    document.getElementById('photoUpload').disabled = false;
+                    
+                    document.querySelectorAll('.border-warning').forEach(el => {
+                        el.classList.remove('border-warning');
+                        el.removeAttribute('title');
+                    });
+                }
+            }
+        } catch (err) {
+            showToast('Error', 'Failed to load profile', 'error');
+        }
+    }
+    
+    function capitalizeFirst(string) {
+        if(string === 'marital_status') return 'MaritalStatus';
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Management - MGI ERP / HRIS</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Design System & Layout -->
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+  <style>
+    .badge-assigned { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .badge-in_stock { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-under_maintenance { background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+    .badge-damaged { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-disposed { background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    .stat-card {
+      border-radius: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--mgi-shadow-lg) !important;
+    }
+    .code-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      background: #f8fafc;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <!-- Breadcrumb & Header Title -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">IT Management</li>
+                <li class="breadcrumb-item active" aria-current="page">Device Management</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-0">Device Management (Inventaris IT)</h4>
+            <p class="text-muted small mb-0">Pendataan perangkat kantor yang diberikan/dipinjamkan ke user, nomor seri (SN), IMEI, nomor telepon, dan departemen.</p>
+          </div>
+          <div>
+            <button class="btn btn-primary shadow-sm d-flex align-items-center gap-2" onclick="openAddDeviceModal()">
+              <i class="bi bi-laptop"></i>
+              <span>Tambah Perangkat Baru</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metrics Stats Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary">
+                  <i class="bi bi-devices fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Total Perangkat</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statTotal">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-info bg-opacity-10 text-info">
+                  <i class="bi bi-person-check fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Assigned ke User</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statAssigned">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success">
+                  <i class="bi bi-box-seam fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Tersedia (In Stock)</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statStock">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm stat-card p-3 bg-white">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning">
+                  <i class="bi bi-tools fs-4"></i>
+                </div>
+                <div>
+                  <div class="text-muted small">Maintenance / Rusak</div>
+                  <h4 class="fw-bold mb-0 text-dark" id="statIssue">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                  <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Cari Kode Aset, SN, IMEI, User, Dept..." onkeyup="filterDevices()">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select id="typeFilter" class="form-select" onchange="filterDevices()">
+                  <option value="">Semua Tipe Perangkat</option>
+                  <option value="Laptop">Laptop</option>
+                  <option value="PC Desktop">PC Desktop</option>
+                  <option value="Smartphone">Smartphone</option>
+                  <option value="Tablet">Tablet</option>
+                  <option value="Monitor">Monitor</option>
+                  <option value="Printer">Printer</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select id="statusFilter" class="form-select" onchange="filterDevices()">
+                  <option value="">Semua Status</option>
+                  <option value="assigned">Assigned (Dipakai)</option>
+                  <option value="in_stock">In Stock (Tersedia)</option>
+                  <option value="under_maintenance">Under Maintenance</option>
+                  <option value="damaged">Damaged (Rusak)</option>
+                  <option value="disposed">Disposed (Dimusnahkan)</option>
+                </select>
+              </div>
+              <div class="col-md-2 d-flex">
+                <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" onclick="loadDevices()">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Devices Table Card -->
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-grid-fill text-primary"></i>
+              <span>Daftar Perangkat IT Perusahaan</span>
+            </h6>
+            <span class="badge bg-light text-dark border" id="totalBadge">Total: 0</span>
+          </div>
+
+          <div class="card-body p-0">
+            <div id="tableStateContainer"></div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0" id="devicesTable">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4">Kode Aset</th>
+                    <th>Perangkat & Model</th>
+                    <th>Identifikasi (SN / IMEI / Telp)</th>
+                    <th>Pemegang & Dept/Role</th>
+                    <th>Status</th>
+                    <th>Email Terhubung</th>
+                    <th class="text-end pe-4">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="devicesTableBody">
+                  <!-- Generated Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Device Modal (Create & Edit) -->
+  <div class="modal fade" id="deviceModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="deviceModalTitle">Tambah Perangkat IT</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="deviceForm">
+            <input type="hidden" id="deviceId">
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Kode Aset <span class="text-danger">*</span></label>
+                <input type="text" id="assetCode" class="form-control font-monospace" placeholder="Contoh: MGI-AST-001" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Nama Perangkat <span class="text-danger">*</span></label>
+                <input type="text" id="deviceName" class="form-control" placeholder="Contoh: Laptop ThinkPad T14 Gen 3" required>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Tipe Perangkat <span class="text-danger">*</span></label>
+                <select id="deviceType" class="form-select" required>
+                  <option value="Laptop">Laptop</option>
+                  <option value="PC Desktop">PC Desktop</option>
+                  <option value="Smartphone">Smartphone</option>
+                  <option value="Tablet">Tablet</option>
+                  <option value="Monitor">Monitor</option>
+                  <option value="Printer">Printer</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Brand / Merk <span class="text-danger">*</span></label>
+                <input type="text" id="brand" class="form-control" placeholder="Contoh: Lenovo, Apple, Dell, Samsung" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Model Perangkat <span class="text-danger">*</span></label>
+                <input type="text" id="model" class="form-control" placeholder="Contoh: ThinkPad T14 / MacBook Air M2" required>
+              </div>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+              <h6 class="fw-bold small text-dark mb-2"><i class="bi bi-fingerprint text-primary me-1"></i> Data Identifikasi Perangkat</h6>
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">Nomor Seri (SN)</label>
+                  <input type="text" id="serialNumber" class="form-control font-monospace" placeholder="Contoh: PF3X492A">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">Nomor IMEI</label>
+                  <input type="text" id="imeiNumber" class="form-control font-monospace" placeholder="15 digit (untuk HP/Tablet)">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">Nomor Telepon / SIM</label>
+                  <input type="text" id="phoneNumber" class="form-control" placeholder="Contoh: 0812-3456-7890">
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">User Pemegang / Penerima</label>
+                <select id="assignedUserId" class="form-select" onchange="handleUserSelectionChange()">
+                  <option value="">-- Belum Diserahkan (In Stock) --</option>
+                </select>
+                <div class="form-text small">Pilih karyawan yang menggunakan perangkat ini.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Departemen / Role</label>
+                <input type="text" id="departmentRole" class="form-control" placeholder="Contoh: IT / HRGA / FINANCE / PM">
+                <div class="form-text small">Dapat terisi otomatis dari user terpilih atau disesuaikan.</div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Status Kondisi <span class="text-danger">*</span></label>
+                <select id="deviceStatus" class="form-select" required>
+                  <option value="in_stock">In Stock (Tersedia)</option>
+                  <option value="assigned">Assigned (Digunakan User)</option>
+                  <option value="under_maintenance">Under Maintenance</option>
+                  <option value="damaged">Damaged (Rusak)</option>
+                  <option value="disposed">Disposed (Dimusnahkan)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label text-muted small fw-bold">Tanggal Serah Terima</label>
+                <input type="date" id="assignedDate" class="form-control">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Spesifikasi Detail Perangkat</label>
+              <textarea id="specs" class="form-control" rows="2" placeholder="Contoh: Core i7-1260P, RAM 16GB, SSD 512GB NVMe, Windows 11 Pro"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-bold">Catatan Tambahan (Notes)</label>
+              <textarea id="notes" class="form-control" rows="2" placeholder="Keterangan kondisi fisik, kelengkapan charger, tas, dll."></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+              <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="btn btn-primary d-flex align-items-center gap-2" id="btnSaveDevice">
+                <i class="bi bi-check2-circle"></i>
+                <span>Simpan Perangkat</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Detail Perangkat IT</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="detailModalBody">
+          <!-- Populated by JS -->
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+
+  <script>
+    let allDevices = [];
+    let usersList = [];
+    let currentUser = null;
+    let deviceModalInstance = null;
+    let detailModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentUser = await checkAuth();
+      if (!currentUser || ![1, 7].includes(parseInt(currentUser.role_id))) {
+        window.location.href = getAppUrl('/frontend/dashboard.html');
+        return;
+      }
+      renderSidebar('devices', currentUser);
+      renderHeader(currentUser);
+
+      deviceModalInstance = new bootstrap.Modal(document.getElementById('deviceModal'));
+      detailModalInstance = new bootstrap.Modal(document.getElementById('detailModal'));
+
+      document.getElementById('deviceForm').addEventListener('submit', handleSaveDevice);
+
+      await loadOptions();
+      await loadDevices();
+    });
+
+    async function loadOptions() {
+      const res = await apiGet('/backend/api/it/options.php');
+      if (res.success && res.data) {
+        usersList = res.data.users || [];
+        populateUserDropdown();
+      }
+    }
+
+    function populateUserDropdown() {
+      const select = document.getElementById('assignedUserId');
+      select.innerHTML = '<option value="">-- Belum Diserahkan (In Stock) --</option>';
+      usersList.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.full_name} (${u.role_name} - ${u.email})`;
+        opt.dataset.role = u.role_name;
+        opt.dataset.position = u.position || '';
+        select.appendChild(opt);
+      });
+    }
+
+    function handleUserSelectionChange() {
+      const select = document.getElementById('assignedUserId');
+      const deptInput = document.getElementById('departmentRole');
+      const statusSelect = document.getElementById('deviceStatus');
+      const dateInput = document.getElementById('assignedDate');
+
+      const selectedOption = select.options[select.selectedIndex];
+      if (select.value) {
+        if (!deptInput.value) {
+          deptInput.value = selectedOption.dataset.role || '';
+        }
+        if (statusSelect.value === 'in_stock') {
+          statusSelect.value = 'assigned';
+        }
+        if (!dateInput.value) {
+          dateInput.value = new Date().toISOString().split('T')[0];
+        }
+      } else {
+        if (statusSelect.value === 'assigned') {
+          statusSelect.value = 'in_stock';
+        }
+      }
+    }
+
+    async function loadDevices() {
+      const stateContainer = document.getElementById('tableStateContainer');
+      const tbody = document.getElementById('devicesTableBody');
+      tbody.innerHTML = '';
+      renderLoading('tableStateContainer', 'Memuat data inventaris perangkat IT...');
+
+      const res = await apiGet('/backend/api/it/devices/index.php');
+      stateContainer.innerHTML = '';
+
+      if (res.success && res.data) {
+        allDevices = res.data.devices || [];
+        updateStats(res.data.stats || {});
+        renderDeviceRows(allDevices);
+      } else {
+        renderErrorState('tableStateContainer', res.message || 'Gagal memuat data perangkat', 'loadDevices');
+      }
+    }
+
+    function updateStats(stats) {
+      document.getElementById('statTotal').textContent = stats.total || 0;
+      document.getElementById('statAssigned').textContent = stats.assigned || 0;
+      document.getElementById('statStock').textContent = stats.in_stock || 0;
+      const maintenance = parseInt(stats.maintenance || 0) + parseInt(stats.damaged || 0);
+      document.getElementById('statIssue').textContent = maintenance;
+      document.getElementById('totalBadge').textContent = `Total: ${stats.total || 0}`;
+    }
+
+    function renderDeviceRows(devices) {
+      const tbody = document.getElementById('devicesTableBody');
+      tbody.innerHTML = '';
+
+      if (!devices || devices.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-laptop fs-1 d-block mb-2 text-secondary"></i>
+              Belum ada data perangkat yang terdaftar. Silakan klik tombol "Tambah Perangkat Baru".
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      devices.forEach(d => {
+        const tr = document.createElement('tr');
+
+        // Status badge
+        let statusBadge = '';
+        if (d.status === 'assigned') statusBadge = '<span class="badge badge-assigned"><i class="bi bi-person-check me-1"></i>Assigned</span>';
+        else if (d.status === 'in_stock') statusBadge = '<span class="badge badge-in_stock"><i class="bi bi-box-seam me-1"></i>In Stock</span>';
+        else if (d.status === 'under_maintenance') statusBadge = '<span class="badge badge-under_maintenance"><i class="bi bi-tools me-1"></i>Maintenance</span>';
+        else if (d.status === 'damaged') statusBadge = '<span class="badge badge-damaged"><i class="bi bi-exclamation-triangle me-1"></i>Damaged</span>';
+        else statusBadge = '<span class="badge badge-disposed">Disposed</span>';
+
+        // Icon per tipe
+        let typeIcon = 'bi-laptop';
+        if (d.device_type === 'Smartphone') typeIcon = 'bi-phone';
+        else if (d.device_type === 'Tablet') typeIcon = 'bi-tablet';
+        else if (d.device_type === 'PC Desktop') typeIcon = 'bi-display';
+        else if (d.device_type === 'Printer') typeIcon = 'bi-printer';
+
+        // Identification snippets
+        let identHtml = [];
+        if (d.serial_number) identHtml.push(`<div><small class="text-muted">SN:</small> <span class="code-chip">${escapeHtml(d.serial_number)}</span></div>`);
+        if (d.imei_number) identHtml.push(`<div><small class="text-muted">IMEI:</small> <span class="code-chip">${escapeHtml(d.imei_number)}</span></div>`);
+        if (d.phone_number) identHtml.push(`<div><small class="text-muted">Telp:</small> <span class="fw-semibold text-primary">${escapeHtml(d.phone_number)}</span></div>`);
+        if (identHtml.length === 0) identHtml.push('<span class="text-muted small">-</span>');
+
+        // User / Dept
+        let userDeptHtml = '';
+        if (d.assigned_user_id) {
+          userDeptHtml = `
+            <div class="fw-semibold text-dark">${escapeHtml(d.assigned_user_name || '-')}</div>
+            <div class="small text-muted">${escapeHtml(d.department_role || d.assigned_user_role || '-')}</div>
+          `;
+        } else {
+          userDeptHtml = `
+            <span class="text-muted fst-italic small">Belum Diserahkan</span>
+            ${d.department_role ? `<div class="small text-muted">${escapeHtml(d.department_role)}</div>` : ''}
+          `;
+        }
+
+        // Linked email count
+        const emailBadge = parseInt(d.linked_email_count) > 0 
+          ? `<a href="/frontend/pages/it/emails.html?search=${encodeURIComponent(d.asset_code)}" class="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none"><i class="bi bi-envelope-at me-1"></i>${d.linked_email_count} Akun</a>`
+          : `<span class="text-muted small">0</span>`;
+
+        tr.innerHTML = `
+          <td class="ps-4">
+            <span class="fw-bold text-dark font-monospace">${escapeHtml(d.asset_code)}</span>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi ${typeIcon} fs-5 text-primary"></i>
+              <div>
+                <div class="fw-semibold text-dark">${escapeHtml(d.device_name)}</div>
+                <div class="small text-muted">${escapeHtml(d.brand)} - ${escapeHtml(d.model)} (${escapeHtml(d.device_type)})</div>
+              </div>
+            </div>
+          </td>
+          <td>${identHtml.join('')}</td>
+          <td>${userDeptHtml}</td>
+          <td>${statusBadge}</td>
+          <td>${emailBadge}</td>
+          <td class="text-end pe-4">
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-info" title="Lihat Detail" onclick="viewDeviceDetail(${d.id})">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-outline-primary" title="Edit Data" onclick="openEditDeviceModal(${d.id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-outline-danger" title="Hapus" onclick="confirmDeleteDevice(${d.id}, '${escapeHtml(d.asset_code)}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterDevices() {
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+      const type = document.getElementById('typeFilter').value;
+      const status = document.getElementById('statusFilter').value;
+
+      const filtered = allDevices.filter(d => {
+        const matchesSearch = !search || 
+          (d.asset_code && d.asset_code.toLowerCase().includes(search)) ||
+          (d.device_name && d.device_name.toLowerCase().includes(search)) ||
+          (d.brand && d.brand.toLowerCase().includes(search)) ||
+          (d.model && d.model.toLowerCase().includes(search)) ||
+          (d.serial_number && d.serial_number.toLowerCase().includes(search)) ||
+          (d.imei_number && d.imei_number.toLowerCase().includes(search)) ||
+          (d.phone_number && d.phone_number.toLowerCase().includes(search)) ||
+          (d.department_role && d.department_role.toLowerCase().includes(search)) ||
+          (d.assigned_user_name && d.assigned_user_name.toLowerCase().includes(search));
+
+        const matchesType = !type || d.device_type === type;
+        const matchesStatus = !status || d.status === status;
+
+        return matchesSearch && matchesType && matchesStatus;
+      });
+
+      renderDeviceRows(filtered);
+    }
+
+    function openAddDeviceModal() {
+      document.getElementById('deviceModalTitle').textContent = 'Tambah Perangkat IT Baru';
+      document.getElementById('deviceId').value = '';
+      document.getElementById('deviceForm').reset();
+      document.getElementById('deviceStatus').value = 'in_stock';
+      deviceModalInstance.show();
+    }
+
+    function openEditDeviceModal(id) {
+      const d = allDevices.find(item => item.id == id);
+      if (!d) return;
+
+      document.getElementById('deviceModalTitle').textContent = 'Edit Data Perangkat IT';
+      document.getElementById('deviceId').value = d.id;
+      document.getElementById('assetCode').value = d.asset_code || '';
+      document.getElementById('deviceName').value = d.device_name || '';
+      document.getElementById('deviceType').value = d.device_type || 'Laptop';
+      document.getElementById('brand').value = d.brand || '';
+      document.getElementById('model').value = d.model || '';
+      document.getElementById('serialNumber').value = d.serial_number || '';
+      document.getElementById('imeiNumber').value = d.imei_number || '';
+      document.getElementById('phoneNumber').value = d.phone_number || '';
+      document.getElementById('departmentRole').value = d.department_role || '';
+      document.getElementById('assignedUserId').value = d.assigned_user_id || '';
+      document.getElementById('assignedDate').value = d.assigned_date || '';
+      document.getElementById('deviceStatus').value = d.status || 'in_stock';
+      document.getElementById('specs').value = d.specs || '';
+      document.getElementById('notes').value = d.notes || '';
+
+      deviceModalInstance.show();
+    }
+
+    async function handleSaveDevice(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btnSaveDevice');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+
+      const id = document.getElementById('deviceId').value;
+      const payload = {
+        id: id ? parseInt(id) : null,
+        asset_code: document.getElementById('assetCode').value.trim(),
+        device_name: document.getElementById('deviceName').value.trim(),
+        device_type: document.getElementById('deviceType').value,
+        brand: document.getElementById('brand').value.trim(),
+        model: document.getElementById('model').value.trim(),
+        serial_number: document.getElementById('serialNumber').value.trim(),
+        imei_number: document.getElementById('imeiNumber').value.trim(),
+        phone_number: document.getElementById('phoneNumber').value.trim(),
+        department_role: document.getElementById('departmentRole').value.trim(),
+        assigned_user_id: document.getElementById('assignedUserId').value || null,
+        assigned_date: document.getElementById('assignedDate').value || null,
+        status: document.getElementById('deviceStatus').value,
+        specs: document.getElementById('specs').value.trim(),
+        notes: document.getElementById('notes').value.trim()
+      };
+
+      try {
+        let res;
+        if (id) {
+          res = await apiPost('/backend/api/it/devices/update.php', payload);
+        } else {
+          res = await apiPost('/backend/api/it/devices/create.php', payload);
+        }
+
+        if (res.success) {
+          showToast(res.message || 'Data perangkat berhasil disimpan', 'success');
+          deviceModalInstance.hide();
+          await loadDevices();
+        } else {
+          showToast(res.message || 'Gagal menyimpan perangkat', 'danger');
+        }
+      } catch (err) {
+        showToast('Terjadi kesalahan koneksi server', 'danger');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="bi bi-check2-circle"></i><span>Simpan Perangkat</span>';
+      }
+    }
+
+    function viewDeviceDetail(id) {
+      const d = allDevices.find(item => item.id == id);
+      if (!d) return;
+
+      const container = document.getElementById('detailModalBody');
+      container.innerHTML = `
+        <div class="text-center mb-4">
+          <div class="display-6 fw-bold text-primary">${escapeHtml(d.asset_code)}</div>
+          <h5 class="fw-bold mb-0 text-dark">${escapeHtml(d.device_name)}</h5>
+          <div class="text-muted small">${escapeHtml(d.brand)} ${escapeHtml(d.model)} (${escapeHtml(d.device_type)})</div>
+        </div>
+
+        <div class="list-group list-group-flush border rounded-3 mb-3">
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Nomor Seri (SN)</span>
+            <span class="fw-semibold font-monospace">${escapeHtml(d.serial_number || '-')}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Nomor IMEI</span>
+            <span class="fw-semibold font-monospace">${escapeHtml(d.imei_number || '-')}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Nomor Telepon / SIM</span>
+            <span class="fw-semibold text-primary">${escapeHtml(d.phone_number || '-')}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Status Kondisi</span>
+            <span class="badge bg-secondary text-uppercase">${escapeHtml(d.status)}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">User Pemegang</span>
+            <span class="fw-semibold text-dark">${escapeHtml(d.assigned_user_name || 'Belum Diserahkan')}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Departemen / Role</span>
+            <span class="fw-semibold">${escapeHtml(d.department_role || '-')}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between">
+            <span class="text-muted">Tanggal Serah Terima</span>
+            <span>${d.assigned_date || '-'}</span>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <h6 class="fw-bold small text-muted text-uppercase">Spesifikasi</h6>
+          <div class="p-3 bg-light rounded-3 small">${escapeHtml(d.specs || 'Tidak ada spesifikasi khusus.')}</div>
+        </div>
+
+        <div>
+          <h6 class="fw-bold small text-muted text-uppercase">Catatan</h6>
+          <div class="p-3 bg-light rounded-3 small">${escapeHtml(d.notes || 'Tidak ada catatan tambahan.')}</div>
+        </div>
+      `;
+
+      detailModalInstance.show();
+    }
+
+    async function confirmDeleteDevice(id, assetCode) {
+      if (!confirm(`Apakah Anda yakin ingin menghapus perangkat dengan kode aset ${assetCode}? Tindakan ini tidak dapat dibatalkan.`)) {
+        return;
+      }
+
+      const res = await apiPost('/backend/api/it/devices/delete.php', { id: id });
+      if (res.success) {
+        showToast(res.message || 'Perangkat berhasil dihapus', 'success');
+        await loadDevices();
+      } else {
+        showToast(res.message || 'Gagal menghapus perangkat', 'danger');
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+// ==========================================================
+// MGI ERP / HRIS - Service Worker for PWA & Offline Support
+// ==========================================================
+
+const CACHE_NAME = 'mgi-erp-cache-v1.0';
+const STATIC_ASSETS = [
+  '/',
+  '/manifest.json',
+  '/frontend/pages/user/my-attendance.html',
+  '/frontend/assets/css/global.css',
+  '/frontend/assets/css/layout.css',
+  '/frontend/assets/js/api.js',
+  '/frontend/assets/js/auth.js',
+  '/frontend/components/header.js',
+  '/frontend/components/sidebar.js',
+  '/frontend/components/toast.js'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS).catch((err) => {
+        console.warn('PWA Cache install warning:', err);
+      });
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Network-first strategy for API, cache fallback for assets
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Jangan cache request API dinamis
+  if (url.pathname.startsWith('/backend/api/')) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});

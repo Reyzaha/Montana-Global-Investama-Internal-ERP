@@ -1,0 +1,132 @@
+/* ==========================================================
+   MGI ERP / HRIS - Corporate Design System
+   Branding: PT Montana Global Investama (MGI)
+   Colors:
+   - Primary: Deep Navy (#0F2042 / #1B2B4C)
+   - Secondary: Slate Gray (#64748B)
+   - Accent: Subtle Gold (#D97706 / #F59E0B)
+   - Background: Soft Slate Light (#F8FAFC)
+   ========================================================== */
+
+:root {
+  --mgi-primary: #0f2042;
+  --mgi-primary-light: #1e3a6d;
+  --mgi-primary-dark: #0a152d;
+  --mgi-accent: #d97706;
+  --mgi-accent-light: #fef3c7;
+  --mgi-slate: #64748b;
+  --mgi-slate-light: #f1f5f9;
+  --mgi-slate-dark: #334155;
+  --mgi-bg: #f8fafc;
+  --mgi-card-bg: #ffffff;
+  --mgi-border: #e2e8f0;
+  
+  --mgi-sidebar-width: 260px;
+  --mgi-header-height: 64px;
+  --mgi-font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  
+  --mgi-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --mgi-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --mgi-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+body {
+  font-family: var(--mgi-font-family);
+  background-color: var(--mgi-bg);
+  color: #1e293b;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Corporate Buttons */
+.btn-primary {
+  background-color: var(--mgi-primary);
+  border-color: var(--mgi-primary);
+  font-weight: 500;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: var(--mgi-primary-light) !important;
+  border-color: var(--mgi-primary-light) !important;
+}
+
+.btn-accent {
+  background-color: var(--mgi-accent);
+  border-color: var(--mgi-accent);
+  color: #ffffff;
+  font-weight: 500;
+}
+.btn-accent:hover {
+  background-color: #b45309;
+  border-color: #b45309;
+  color: #ffffff;
+}
+
+/* Card Styling */
+.card {
+  border: 1px solid var(--mgi-border);
+  border-radius: 10px;
+  box-shadow: var(--mgi-shadow-sm);
+  background-color: var(--mgi-card-bg);
+}
+
+.card-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--mgi-border);
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  color: var(--mgi-primary);
+}
+
+/* Tables */
+.table {
+  vertical-align: middle;
+  color: #334155;
+}
+.table thead th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border-bottom: 2px solid var(--mgi-border);
+  padding: 0.85rem 1rem;
+}
+.table td {
+  padding: 0.85rem 1rem;
+  border-color: var(--mgi-border);
+}
+
+/* Badge Enhancements */
+.badge {
+  padding: 0.35em 0.65em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Form Controls */
+.form-control, .form-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.925rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--mgi-primary-light);
+  box-shadow: 0 0 0 0.2rem rgba(15, 32, 66, 0.15);
+}
+
+/* Breadcrumb */
+.breadcrumb-item a {
+  color: var(--mgi-slate);
+  text-decoration: none;
+}
+.breadcrumb-item a:hover {
+  color: var(--mgi-primary);
+}
+.breadcrumb-item.active {
+  color: var(--mgi-primary);
+  font-weight: 500;
+}

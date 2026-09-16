@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Log - MGI ERP / HRIS</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom Design System & Layout -->
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../../assets/css/layout.css">
+</head>
+<body>
+
+  <div id="app-wrapper">
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <!-- Main Section -->
+    <div id="app-main">
+      <!-- Top Header Navbar -->
+      <header id="app-header"></header>
+
+      <!-- App Content Container -->
+      <main class="app-content">
+        <!-- Breadcrumb & Header Title -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">IT Management</li>
+                <li class="breadcrumb-item active" aria-current="page">Activity Log</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-0">System Activity & Audit Logs</h4>
+            <p class="text-muted small mb-0">Catatan jejak aktivitas dan audit log keamanan sistem.</p>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                  <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Cari aksi, deskripsi, user, atau IP..." onkeyup="handleFilter()">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <select id="moduleFilter" class="form-select" onchange="handleFilter()">
+                  <option value="">Semua Modul</option>
+                  <option value="AUTH">AUTH</option>
+                  <option value="IT_MANAGEMENT">IT_MANAGEMENT</option>
+                  <option value="HRGA">HRGA</option>
+                  <option value="LEGAL">LEGAL</option>
+                  <option value="ATTENDANCE">ATTENDANCE</option>
+                </select>
+              </div>
+              <div class="col-md-2 d-flex">
+                <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" onclick="loadLogs(1)">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Logs Table Card -->
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold mb-0 text-dark">Riwayat Audit Logs</h6>
+            <span class="badge bg-light text-dark border" id="totalLogsBadge">Total: 0</span>
+          </div>
+
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4" style="width: 80px;">ID</th>
+                    <th>Pengguna</th>
+                    <th>Modul</th>
+                    <th>Aksi</th>
+                    <th>Deskripsi / Target</th>
+                    <th>IP Address</th>
+                    <th class="pe-4">Waktu</th>
+                  </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="tableStateContainer"></div>
+          </div>
+
+          <!-- Pagination Footer -->
+          <div class="card-footer bg-white border-top py-3 d-flex flex-wrap justify-content-between align-items-center gap-2" id="paginationFooter">
+            <div class="small text-muted" id="paginationInfo">Showing 0 of 0 entries</div>
+            <nav aria-label="Logs pagination">
+              <ul class="pagination pagination-sm mb-0" id="paginationBtns"></ul>
+            </nav>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer id="app-footer" class="text-center">
+        &copy; 2026 PT Montana Global Investama - Internal ERP / HRIS Enterprise System.
+      </footer>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../assets/js/api.js"></script>
+  <script src="../../assets/js/auth.js"></script>
+  <script src="../../utils/roles.js"></script>
+  <script src="../../components/toast.js"></script>
+  <script src="../../components/loading.js"></script>
+  <script src="../../components/sidebar.js"></script>
+  <script src="../../components/header.js"></script>
+
+  <script>
+    let currentUser = null;
+    let currentPage = 1;
+    let filterTimeout = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentUser = await checkAuth();
+      if (!currentUser || ![1, 7].includes(parseInt(currentUser.role_id))) {
+        window.location.href = getAppUrl('/frontend/dashboard.html');
+        return;
+      }
+      renderSidebar('activity-log', currentUser);
+      renderHeader(currentUser);
+      loadLogs(1);
+    });
+
+    function handleFilter() {
+      clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(() => {
+        loadLogs(1);
+      }, 300);
+    }
+
+    async function loadLogs(page = 1) {
+      currentPage = page;
+      const stateContainer = document.getElementById('tableStateContainer');
+      const tbody = document.getElementById('logsTableBody');
+      tbody.innerHTML = '';
+      renderLoading('tableStateContainer', 'Memuat data audit log...');
+
+      const q = encodeURIComponent(document.getElementById('searchInput').value.trim());
+      const module = encodeURIComponent(document.getElementById('moduleFilter').value);
+
+      const res = await apiGet(`/backend/api/audit/logs.php?page=${page}&limit=20&q=${q}&module=${module}`);
+      stateContainer.innerHTML = '';
+
+      if (res.success && Array.isArray(res.data)) {
+        renderLogRows(res.data, res.pagination);
+      } else {
+        renderErrorState('tableStateContainer', res.message || 'Gagal memuat audit log', 'loadLogs');
+      }
+    }
+
+    function renderLogRows(logs, pagination) {
+      const tbody = document.getElementById('logsTableBody');
+      const badge = document.getElementById('totalLogsBadge');
+      tbody.innerHTML = '';
+      badge.textContent = `Total: ${pagination ? pagination.total_records : logs.length}`;
+
+      if (logs.length === 0) {
+        renderEmptyState('tableStateContainer', 'Tidak ada data audit log yang ditemukan.');
+        renderPagination(pagination);
+        return;
+      }
+
+      logs.forEach(l => {
+        const userDisplay = l.user_email ? `<span class="fw-semibold text-dark">${l.user_email}</span>` : '<span class="text-muted italic">System</span>';
+        
+        let moduleBadge = `<span class="badge bg-secondary-subtle text-secondary">${l.module}</span>`;
+        if (l.module === 'AUTH') moduleBadge = `<span class="badge bg-primary-subtle text-primary">${l.module}</span>`;
+        if (l.module === 'IT_MANAGEMENT') moduleBadge = `<span class="badge bg-warning-subtle text-warning">${l.module}</span>`;
+        if (l.module === 'HRGA') moduleBadge = `<span class="badge bg-info-subtle text-info">${l.module}</span>`;
+        if (l.module === 'LEGAL') moduleBadge = `<span class="badge bg-success-subtle text-success">${l.module}</span>`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="ps-4 fw-semibold text-muted">#${l.id}</td>
+          <td>${userDisplay}</td>
+          <td>${moduleBadge}</td>
+          <td><span class="fw-bold text-dark small">${l.action}</span></td>
+          <td class="small text-secondary">${l.description || '-'} ${l.target_id ? `(ID: ${l.target_id})` : ''}</td>
+          <td class="small text-muted">${l.ip_address || '-'}</td>
+          <td class="pe-4 small text-muted">${l.created_at || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      renderPagination(pagination);
+    }
+
+    function renderPagination(p) {
+      const info = document.getElementById('paginationInfo');
+      const container = document.getElementById('paginationBtns');
+      container.innerHTML = '';
+
+      if (!p || p.total_records === 0) {
+        info.textContent = 'Showing 0 entries';
+        return;
+      }
+
+      const start = (p.page - 1) * p.limit + 1;
+      const end = Math.min(p.page * p.limit, p.total_records);
+      info.textContent = `Showing ${start} to ${end} of ${p.total_records} entries`;
+
+      if (p.total_pages <= 1) return;
+
+      // Prev
+      const prevLi = document.createElement('li');
+      prevLi.className = `page-item ${p.page === 1 ? 'disabled' : ''}`;
+      prevLi.innerHTML = `<button class="page-link" onclick="loadLogs(${p.page - 1})">Prev</button>`;
+      container.appendChild(prevLi);
+
+      // Pages
+      for (let i = 1; i <= p.total_pages; i++) {
+        if (i === 1 || i === p.total_pages || (i >= p.page - 2 && i <= p.page + 2)) {
+          const li = document.createElement('li');
+          li.className = `page-item ${i === p.page ? 'active' : ''}`;
+          li.innerHTML = `<button class="page-link" onclick="loadLogs(${i})">${i}</button>`;
+          container.appendChild(li);
+        }
+      }
+
+      // Next
+      const nextLi = document.createElement('li');
+      nextLi.className = `page-item ${p.page === p.total_pages ? 'disabled' : ''}`;
+      nextLi.innerHTML = `<button class="page-link" onclick="loadLogs(${p.page + 1})">Next</button>`;
+      container.appendChild(nextLi);
+    }
+  </script>
+</body>
+</html>
