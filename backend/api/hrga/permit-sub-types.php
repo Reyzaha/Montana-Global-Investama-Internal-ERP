@@ -188,6 +188,61 @@ if ($method === 'GET') {
             );
 
             sendSuccess(['id' => $id, 'is_active' => $isActive], 'Status sub-izin berhasil diubah.');
+        } elseif ($action === 'delete') {
+            $id = (int)($input['id'] ?? 0);
+
+            if ($id <= 0) {
+                sendError('ID sub-izin tidak valid.', 400);
+            }
+
+            $stmtCheck = $pdo->prepare("SELECT id, name FROM `permit_sub_types` WHERE id = ?");
+            $stmtCheck->execute([$id]);
+            $subType = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+            if (!$subType) {
+                sendError('Sub-izin tidak ditemukan.', 404);
+            }
+
+            // Cek apakah sudah pernah digunakan pada riwayat pengajuan permit
+            $stmtUsage = $pdo->prepare("SELECT COUNT(*) FROM `permits` WHERE `permit_sub_type_id` = ?");
+            $stmtUsage->execute([$id]);
+            $usageCount = (int)$stmtUsage->fetchColumn();
+
+            if ($usageCount > 0) {
+                // Nonaktifkan agar tidak merusak relasi data riwayat permit lama
+                $stmtDeactivate = $pdo->prepare("UPDATE `permit_sub_types` SET `is_active` = 0 WHERE `id` = ?");
+                $stmtDeactivate->execute([$id]);
+
+                recordAuditLog(
+                    $user['id'],
+                    'ARCHIVE_PERMIT_SUB_TYPE',
+                    'PERMIT_CONFIG',
+                    (string)$id,
+                    "Menonaktifkan sub-izin ID {$id} ('{$subType['name']}') karena memiliki {$usageCount} riwayat pengajuan permit."
+                );
+
+                sendSuccess([
+                    'id' => $id,
+                    'archived' => true,
+                    'usage_count' => $usageCount
+                ], "Sub-izin '{$subType['name']}' memiliki {$usageCount} riwayat permit, sehingga otomatis dinonaktifkan (diarsipkan).");
+            } else {
+                $stmtDel = $pdo->prepare("DELETE FROM `permit_sub_types` WHERE `id` = ?");
+                $stmtDel->execute([$id]);
+
+                recordAuditLog(
+                    $user['id'],
+                    'DELETE_PERMIT_SUB_TYPE',
+                    'PERMIT_CONFIG',
+                    (string)$id,
+                    "Menghapus permanen sub-izin ID {$id}: '{$subType['name']}'"
+                );
+
+                sendSuccess([
+                    'id' => $id,
+                    'deleted' => true
+                ], "Sub-izin '{$subType['name']}' berhasil dihapus permanen.");
+            }
         } else {
             sendError('Aksi request tidak dikenali.', 400);
         }

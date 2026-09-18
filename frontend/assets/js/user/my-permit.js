@@ -13,10 +13,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadMyPermits();
     loadMyLeaveBalance();
 
-    loadPermitTypes();
-    loadMyPermits();
-    loadMyLeaveBalance();
-
     document.getElementById('permit_type_id').addEventListener('change', handleCategoryChange);
     document.getElementById('permit_sub_type_id').addEventListener('change', handleSubTypeChange);
 });
@@ -105,6 +101,7 @@ async function loadPermitTypes() {
         if (res.success) {
             permitTypes = res.data;
             const select = document.getElementById('permit_type_id');
+            select.innerHTML = '<option value="">-- Pilih Kategori Utama --</option>';
             permitTypes.forEach(pt => {
                 const opt = document.createElement('option');
                 opt.value = pt.id;

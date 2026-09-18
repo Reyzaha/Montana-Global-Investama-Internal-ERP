@@ -70,14 +70,25 @@ function renderPermits(data) {
         const tr = document.createElement('tr');
         
         const badge = getStatusBadge(p.status);
-        const attachmentIcon = p.has_attachment > 0 ? '<i class="bi bi-paperclip text-muted" title="Has attachment"></i> ' : '';
+        const hasAttachment = parseInt(p.has_attachment) > 0;
+        const attachmentBadge = hasAttachment 
+            ? `<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-paperclip me-1"></i>Ada Bukti Foto</span>`
+            : `<span class="badge bg-danger-subtle text-danger border border-danger fw-semibold"><i class="bi bi-exclamation-octagon-fill me-1"></i>Tanpa Bukti Foto</span>`;
+
+        let typeDisplay = `<span class="fw-semibold text-dark">${p.permit_type_name}</span>`;
+        if (p.permit_sub_type_name) {
+            typeDisplay += ` <small class="text-primary fw-normal d-block">(${p.permit_sub_type_name})</small>`;
+        }
 
         tr.innerHTML = `
             <td class="ps-4 fw-semibold text-muted">#${p.id}</td>
             <td>
                 <div class="fw-semibold text-dark">${p.employee_email}</div>
             </td>
-            <td>${attachmentIcon}${p.permit_type_name}</td>
+            <td>
+                <div>${typeDisplay}</div>
+                <div class="mt-1">${attachmentBadge}</div>
+            </td>
             <td>
                 <div class="small"><i class="bi bi-calendar-event me-1 text-muted"></i> ${p.start_date} s/d ${p.end_date}</div>
             </td>
@@ -118,14 +129,26 @@ async function viewPermit(id) {
 
         const p = res.data;
         let attachmentsHtml = '';
-        if (p.attachments.length > 0) {
+        if (p.attachments && p.attachments.length > 0) {
             attachmentsHtml = p.attachments.map(a => `
                 <a href="/backend/${a.file_path}" target="_blank" class="badge bg-light text-dark border p-2 text-decoration-none me-2">
-                    <i class="bi bi-file-earmark-text text-primary"></i> ${a.original_name}
+                    <i class="bi bi-file-earmark-text text-primary me-1"></i> ${a.original_name}
                 </a>
             `).join('');
         } else {
-            attachmentsHtml = '<span class="text-muted small">No attachments</span>';
+            attachmentsHtml = `
+                <div class="alert alert-danger d-flex align-items-center mb-0 py-2 border-danger">
+                    <i class="bi bi-exclamation-triangle-fill text-danger fs-5 me-2 flex-shrink-0"></i>
+                    <div class="small">
+                        <strong class="text-danger">Catatan Lampiran:</strong> Pemohon <span class="fw-bold text-decoration-underline">tidak mengunggah foto / bukti surat</span> pada pengajuan izin ini.
+                    </div>
+                </div>
+            `;
+        }
+
+        let typeDisplay = p.permit_type_name;
+        if (p.permit_sub_type_name) {
+            typeDisplay += ` <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal ms-1">${p.permit_sub_type_name}</span>`;
         }
 
         let historyHtml = '';
@@ -154,7 +177,7 @@ async function viewPermit(id) {
                 </div>
                 <div class="col-md-6">
                     <div class="small text-muted text-uppercase fw-bold mb-1">Permit Type</div>
-                    <div>${p.permit_type_name}</div>
+                    <div>${typeDisplay}</div>
                 </div>
             </div>
             

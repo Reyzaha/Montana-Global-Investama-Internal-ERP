@@ -100,14 +100,22 @@ function renderSubPermitTable(items) {
             <td>${genderBadge}</td>
             <td>${isPaidBadge}</td>
             <td>${activeSwitch}</td>
-            <td class="text-center pe-3">
-                <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="openEditModal(${item.id})">
+            <td class="text-center pe-3 text-nowrap">
+                <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" onclick="openEditModal(${item.id})" title="Edit Sub-Izin">
                     <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteSubPermit(${item.id}, '${escapeHtml(item.name)}')" title="Hapus Sub-Izin">
+                    <i class="bi bi-trash me-1"></i> Hapus
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
 window.openCreateModal = function() {
@@ -197,5 +205,26 @@ window.toggleSubPermitStatus = async function(id, isChecked) {
         }
     } catch (e) {
         showToast('Gagal mengubah status sub-izin.', 'danger');
+    }
+};
+
+window.deleteSubPermit = async function(id, name) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus sub-jenis izin "${name}"?\n\nJika sub-izin ini sudah pernah diajukan oleh karyawan, sistem akan otomatis menonaktifkannya agar arsip tetap aman.`)) {
+        return;
+    }
+
+    try {
+        const res = await apiPost('/backend/api/hrga/permit-sub-types.php', {
+            action: 'delete',
+            id: id
+        });
+        if (res.success) {
+            showToast(res.message, 'success');
+            await loadSubPermits();
+        } else {
+            showToast(res.message, 'danger');
+        }
+    } catch (e) {
+        showToast('Gagal menghapus sub-izin akibat kendala jaringan/server.', 'danger');
     }
 };

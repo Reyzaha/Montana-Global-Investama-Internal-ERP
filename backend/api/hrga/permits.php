@@ -189,7 +189,7 @@ if ($method === 'GET') {
             }
         }
 
-        if ($permitType['requires_attachment'] && !$hasFile) {
+        if (!$permit_sub_type_id && $permitType['requires_attachment'] && !$hasFile) {
             sendError("Attachment is required for {$permitType['name']}.", 400);
         }
 

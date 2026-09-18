@@ -21,11 +21,13 @@ if (!$permitId) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT p.id, p.user_id, u.email as employee_email, pt.name as permit_type_name, 
+        SELECT p.id, p.user_id, u.email as employee_email, pt.name as permit_type_name, pt.code as permit_type_code,
+               p.permit_sub_type_id, pst.name as permit_sub_type_name,
                p.start_date, p.end_date, p.description, p.status, p.created_at
         FROM permits p
         JOIN users u ON p.user_id = u.id
         JOIN permit_types pt ON p.permit_type_id = pt.id
+        LEFT JOIN permit_sub_types pst ON p.permit_sub_type_id = pst.id
         WHERE p.id = ?
     ");
     $stmt->execute([$permitId]);
