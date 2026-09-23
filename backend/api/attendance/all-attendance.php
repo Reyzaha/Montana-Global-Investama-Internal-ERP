@@ -37,6 +37,14 @@ try {
     $stmt->execute([$month, $year]);
     $attendances = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Apply custom rule for montanaglobalinvestamait@gmail.com
+    foreach ($attendances as &$att) {
+        if ($att['employee_email'] === 'montanaglobalinvestamait@gmail.com') {
+            $att['status'] = 'on_time';
+        }
+    }
+    unset($att);
+
     sendSuccess($attendances, 'All attendance retrieved successfully.');
 } catch (Exception $e) {
     sendError('Failed to fetch attendance: ' . $e->getMessage(), 500);

@@ -1,4 +1,5 @@
 let currentUser = null;
+let currentAttendanceData = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     currentUser = await checkAuth();
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAllAttendance();
 
     document.getElementById('btnApplyFilter').addEventListener('click', loadAllAttendance);
+    document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
 });
 
 function initFilters() {
@@ -55,6 +57,7 @@ async function loadAllAttendance() {
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Tidak ada data absensi untuk periode ini.</td></tr>`;
                 return;
             }
+            currentAttendanceData = res.data;
             tbody.innerHTML = '';
             res.data.forEach(item => {
                 const tr = document.createElement('tr');
@@ -85,4 +88,68 @@ async function loadAllAttendance() {
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Gagal memuat data</td></tr>`;
     }
+}
+
+function exportPdf() {
+    if (!currentAttendanceData || currentAttendanceData.length === 0) {
+        alert("Tidak ada data untuk diexport");
+        return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const monthSelect = document.getElementById('filterMonth');
+    const month = monthSelect.options[monthSelect.selectedIndex].text;
+    const year = document.getElementById('filterYear').value;
+    
+    doc.setFontSize(16);
+    doc.text(`Rekap Absensi Karyawan - ${month} ${year}`, 14, 15);
+    
+    // Calculate summary per user
+    const summary = {};
+    currentAttendanceData.forEach(item => {
+        if (!summary[item.employee_email]) {
+            summary[item.employee_email] = {
+                name: item.employee_name || item.employee_email,
+                on_time: 0,
+                late: 0,
+                absent: 0
+            };
+        }
+        if (item.status === 'on_time') summary[item.employee_email].on_time++;
+        else if (item.status === 'late') summary[item.employee_email].late++;
+        else if (item.status === 'absent') summary[item.employee_email].absent++;
+    });
+    
+    // Add summary table
+    doc.setFontSize(12);
+    doc.text("Ringkasan Kehadiran", 14, 25);
+    const summaryBody = Object.values(summary).map(s => [s.name, s.on_time, s.late, s.absent]);
+    doc.autoTable({
+        startY: 30,
+        head: [['Karyawan', 'On Time', 'Terlambat', 'Absen']],
+        body: summaryBody,
+        theme: 'grid',
+        styles: { fontSize: 9 }
+    });
+    
+    // Add detailed table
+    doc.text("Detail Kehadiran", 14, doc.lastAutoTable.finalY + 10);
+    const detailBody = currentAttendanceData.map(item => [
+        item.date,
+        item.employee_name || item.employee_email,
+        item.check_in || '-',
+        item.check_out || '-',
+        (item.status || 'pending').replace('_', ' ').toUpperCase()
+    ]);
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 15,
+        head: [['Tanggal', 'Karyawan', 'Masuk', 'Keluar', 'Status']],
+        body: detailBody,
+        theme: 'grid',
+        styles: { fontSize: 8 }
+    });
+    
+    doc.save(`Rekap_Absensi_${month}_${year}.pdf`);
 }

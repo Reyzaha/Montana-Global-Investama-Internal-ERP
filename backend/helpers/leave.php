@@ -29,12 +29,29 @@ function getOrCreateLeaveBalance(PDO $pdo, int $userId, int $permitTypeId, ?int 
         return $balance;
     }
 
-    // Auto-create with default 12 days quota
+    // Fetch join_date to calculate prorated quota
+    $stmtProfile = $pdo->prepare("SELECT join_date FROM user_profiles WHERE user_id = ? LIMIT 1");
+    $stmtProfile->execute([$userId]);
+    $profile = $stmtProfile->fetch(PDO::FETCH_ASSOC);
+    
+    $quota = 12.0;
+    if ($profile && !empty($profile['join_date'])) {
+        $joinYear = (int)date('Y', strtotime($profile['join_date']));
+        $joinMonth = (int)date('m', strtotime($profile['join_date']));
+        
+        if ($joinYear === $year) {
+            $quota = (float)max(0, 12 - $joinMonth + 1);
+        } elseif ($joinYear > $year) {
+            $quota = 0.0;
+        }
+    }
+
+    // Auto-create with calculated quota
     $stmtInsert = $pdo->prepare("
         INSERT INTO `leave_balances` (`user_id`, `permit_type_id`, `year`, `quota_days`, `used_days`, `carried_over_days`)
-        VALUES (?, ?, ?, 12.0, 0.0, 0.0)
+        VALUES (?, ?, ?, ?, 0.0, 0.0)
     ");
-    $stmtInsert->execute([$userId, $permitTypeId, $year]);
+    $stmtInsert->execute([$userId, $permitTypeId, $year, $quota]);
     $newId = (int)$pdo->lastInsertId();
 
     return [
@@ -42,10 +59,10 @@ function getOrCreateLeaveBalance(PDO $pdo, int $userId, int $permitTypeId, ?int 
         'user_id' => $userId,
         'permit_type_id' => $permitTypeId,
         'year' => $year,
-        'quota_days' => 12.0,
+        'quota_days' => $quota,
         'used_days' => 0.0,
         'carried_over_days' => 0.0,
-        'remaining_days' => 12.0
+        'remaining_days' => $quota
     ];
 }
 
