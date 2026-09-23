@@ -35,6 +35,17 @@ try {
     $stmtToday->execute([$user['id'], $today]);
     $todayRecord = $stmtToday->fetch(PDO::FETCH_ASSOC) ?: null;
 
+    // Apply custom rule for montanaglobalinvestamait@gmail.com
+    if ($user['email'] === 'montanaglobalinvestamait@gmail.com') {
+        if ($todayRecord) {
+            $todayRecord['status'] = 'on_time';
+        }
+        foreach ($attendances as &$att) {
+            $att['status'] = 'on_time';
+        }
+        unset($att);
+    }
+
     sendSuccess([
         'today' => $todayRecord,
         'server_date' => $today,

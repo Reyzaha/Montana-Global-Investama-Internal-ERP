@@ -97,6 +97,10 @@ try {
     // Determine status
     $status = ($currentTime > $settings['check_in_time']) ? 'late' : 'on_time';
 
+    // Apply custom rule for montanaglobalinvestamait@gmail.com
+    if ($user['email'] === 'montanaglobalinvestamait@gmail.com') {
+        $status = 'on_time';
+    }
     if ($attendance) {
         // Update existing record
         $stmt = $pdo->prepare("UPDATE attendances SET check_in = ?, check_in_latitude = ?, check_in_longitude = ?, check_in_accuracy = ?, check_in_distance = ?, status = ? WHERE id = ?");
