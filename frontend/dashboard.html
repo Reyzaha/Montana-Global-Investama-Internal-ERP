@@ -316,8 +316,8 @@
         if (el) el.textContent = now.toLocaleTimeString('id-ID');
       }, 1000);
 
-      // 6. Check if user must change password on first login / active
-      checkPasswordChangeRequired(currentUser);
+      // 6. Check if user must change password on first login / active (dinonaktifkan untuk testing)
+      // checkPasswordChangeRequired(currentUser);
 
       // 7. Load dynamic stats & recent activities
       loadDashboardStats();

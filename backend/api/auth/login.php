@@ -82,13 +82,9 @@ try {
     $_SESSION['role_id'] = (int)$user['role_id'];
     $_SESSION['role_name'] = $user['role_name'];
 
-    // Cek status kewajiban ganti password login pertama
-    $mustChangePassword = !empty($user['force_password_change']);
-    if ($mustChangePassword) {
-        $_SESSION['must_change_password'] = true;
-    } else {
-        unset($_SESSION['must_change_password']);
-    }
+    // Cek status kewajiban ganti password login pertama (dinonaktifkan sementara untuk testing)
+    $mustChangePassword = false;
+    unset($_SESSION['must_change_password']);
 
     // Cek MFA Status
     $mfaEnabled = (bool)$user['mfa_enabled'];

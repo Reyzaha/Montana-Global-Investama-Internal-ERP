@@ -87,15 +87,9 @@ try {
 
     recordAuditLog($userId, 'LOGIN_MFA_SUCCESS', 'AUTH', (string)$userId, 'MFA OTP verified successfully, access granted to Dashboard');
 
-    // Cek apakah user wajib ganti password
-    $stmtForce = $pdo->prepare("SELECT force_password_change FROM `users` WHERE id = :id");
-    $stmtForce->execute([':id' => $userId]);
-    $forceChange = (int)$stmtForce->fetchColumn();
-
-    $mustChangePassword = ($forceChange === 1) || !empty($_SESSION['must_change_password']);
-    if ($mustChangePassword) {
-        $_SESSION['must_change_password'] = true;
-    }
+    // Status ganti password dinonaktifkan sementara untuk testing
+    $mustChangePassword = false;
+    unset($_SESSION['must_change_password']);
 
     sendSuccess([
         'user' => [
