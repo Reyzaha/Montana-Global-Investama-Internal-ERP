@@ -23,6 +23,14 @@ async function checkAuth(requiredRoles = []) {
       return null;
     }
 
+    // Check if user must change password on first login
+    if (user.must_change_password) {
+      if (!window.location.pathname.includes('change-password.html')) {
+        window.location.href = getAppUrl('/frontend/change-password.html');
+        return null;
+      }
+    }
+
     // Role check if specified
     if (requiredRoles.length > 0 && !requiredRoles.includes(user.role_id)) {
       alert('Akses Ditolak: Anda tidak memiliki wewenang untuk membuka halaman ini.');

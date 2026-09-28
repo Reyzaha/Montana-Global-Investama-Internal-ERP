@@ -57,7 +57,7 @@ if ($method === 'GET') {
                 pst.is_active,
                 pst.created_at
             FROM `permit_sub_types` pst
-            JOIN `permit_types` pt ON pst.category_id = pt.id
+            LEFT JOIN `permit_types` pt ON pst.category_id = pt.id
             $whereClause
             ORDER BY pst.category_id ASC, pst.is_active DESC, pst.name ASC
         ";

@@ -21,26 +21,125 @@
       <header id="app-header"></header>
 
       <main class="app-content">
-        <div class="mb-4">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-1 small">
-              <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
-              <li class="breadcrumb-item">HRGA Management</li>
-              <li class="breadcrumb-item active" aria-current="page">Attendance Recap</li>
-            </ol>
-          </nav>
-          <h4 class="fw-bold text-dark mb-1">Attendance Recap</h4>
-          <p class="text-muted">Laporan absensi seluruh karyawan.</p>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
+                <li class="breadcrumb-item">HRGA Management</li>
+                <li class="breadcrumb-item active" aria-current="page">Attendance Recap</li>
+              </ol>
+            </nav>
+            <h4 class="fw-bold text-dark mb-1">Rekapitulasi Kehadiran Pegawai</h4>
+            <p class="text-muted mb-0">Laporan komprehensif absensi, keterlambatan, dan jam kerja karyawan.</p>
+          </div>
+          <div>
+            <button class="btn btn-danger btn-sm px-3 shadow-sm" id="btnExportPdf">
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF Rekap
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Summary Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-primary h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Total Kehadiran</div>
+                    <h3 class="fw-bold text-dark mt-1 mb-0" id="cardTotalHadir">0</h3>
+                  </div>
+                  <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+                    <i class="bi bi-calendar2-check fs-4"></i>
+                  </div>
+                </div>
+                <div class="small text-muted mt-2" id="cardTotalHadirSub">Total log hadir tercatat</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Tepat Waktu (On Time)</div>
+                    <h3 class="fw-bold text-success mt-1 mb-0" id="cardOnTime">0</h3>
+                  </div>
+                  <div class="bg-success-subtle text-success p-3 rounded-circle">
+                    <i class="bi bi-check-circle fs-4"></i>
+                  </div>
+                </div>
+                <div class="small text-muted mt-2" id="cardOnTimePercent">0% ketepatan waktu</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-warning h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Terlambat (Late)</div>
+                    <h3 class="fw-bold text-warning mt-1 mb-0" id="cardLate">0</h3>
+                  </div>
+                  <div class="bg-warning-subtle text-warning p-3 rounded-circle">
+                    <i class="bi bi-alarm fs-4"></i>
+                  </div>
+                </div>
+                <div class="small text-muted mt-2" id="cardLatePercent">0% keterlambatan</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm border-start border-4 border-danger h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Absen / Tanpa Ket.</div>
+                    <h3 class="fw-bold text-danger mt-1 mb-0" id="cardAbsent">0</h3>
+                  </div>
+                  <div class="bg-danger-subtle text-danger p-3 rounded-circle">
+                    <i class="bi bi-person-x fs-4"></i>
+                  </div>
+                </div>
+                <div class="small text-muted mt-2">Pegawai tidak hadir</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
-          <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h5 class="card-title fw-bold mb-0">Laporan Bulanan</h5>
-            <div class="d-flex flex-wrap gap-2">
-              <select id="filterMonth" class="form-select form-select-sm" style="width: 120px;"></select>
-              <select id="filterYear" class="form-select form-select-sm" style="width: 100px;"></select>
-              <button class="btn btn-primary btn-sm" id="btnApplyFilter"><i class="bi bi-search"></i> Tampilkan</button>
-              <button class="btn btn-danger btn-sm" id="btnExportPdf"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
+          <div class="card-header bg-white border-bottom py-3">
+            <div class="row g-2 align-items-center justify-content-between">
+              <div class="col-auto">
+                <h5 class="card-title fw-bold mb-0">Daftar Kehadiran Pegawai</h5>
+              </div>
+              <div class="col-auto">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <div>
+                    <select id="filterEmployee" class="form-select form-select-sm" style="min-width: 180px;">
+                      <option value="">Semua Karyawan</option>
+                    </select>
+                  </div>
+                  <div>
+                    <select id="filterStatus" class="form-select form-select-sm" style="width: 140px;">
+                      <option value="">Semua Status</option>
+                      <option value="on_time">Tepat Waktu</option>
+                      <option value="late">Terlambat</option>
+                      <option value="absent">Absen</option>
+                    </select>
+                  </div>
+                  <div>
+                    <select id="filterMonth" class="form-select form-select-sm" style="width: 120px;"></select>
+                  </div>
+                  <div>
+                    <select id="filterYear" class="form-select form-select-sm" style="width: 95px;"></select>
+                  </div>
+                  <button class="btn btn-primary btn-sm px-3" id="btnApplyFilter">
+                    <i class="bi bi-search me-1"></i> Tampilkan
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="card-body p-0">
@@ -48,18 +147,20 @@
               <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                   <tr>
-                    <th class="ps-4">Tanggal</th>
+                    <th class="ps-4">Tanggal & Hari</th>
                     <th>Karyawan</th>
+                    <th>Divisi / Jabatan</th>
                     <th>Jam Masuk</th>
-                    <th>Awal Istirahat</th>
-                    <th>Selesai Istirahat</th>
+                    <th>Istirahat Keluar</th>
+                    <th>Istirahat Masuk</th>
                     <th>Jam Keluar</th>
                     <th>Status</th>
+                    <th class="pe-4 text-end">Keterangan</th>
                   </tr>
                 </thead>
                 <tbody id="allAttendanceBody">
                   <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">
+                    <td colspan="9" class="text-center py-4 text-muted">
                       <div class="spinner-border spinner-border-sm me-2"></div> Memuat data...
                     </td>
                   </tr>

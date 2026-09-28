@@ -111,9 +111,7 @@ try {
                 'role_id' => (int)$user['role_id'],
                 'role_name' => $user['role_name']
             ]
-        ], $mustChangePassword 
-            ? 'Kredensial valid. Anda wajib mengganti kata sandi pada login pertama.' 
-            : 'Kredensial valid. Silakan lakukan aktivasi Google Authenticator (MFA).');
+        ], 'Kredensial valid. Silakan lakukan aktivasi Google Authenticator (MFA).');
     } else {
         // MFA sudah aktif, butuh verifikasi OTP
         $_SESSION['mfa_verified'] = false;

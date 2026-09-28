@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderSidebar('permit_sub_types', currentUser);
     renderHeader(currentUser);
 
+    await loadCategories();
     loadSubPermits();
 
     document.getElementById('filterCategory').addEventListener('change', loadSubPermits);
@@ -20,6 +21,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupFormHandler();
 });
+
+let categoriesCache = [];
+
+async function loadCategories() {
+    try {
+        const res = await apiGet('/backend/api/hrga/permit-types.php?status=all');
+        if (res.success && res.data) {
+            categoriesCache = res.data;
+            const filterCat = document.getElementById('filterCategory');
+            const subCat = document.getElementById('subCategoryId');
+
+            if (filterCat) {
+                filterCat.innerHTML = '<option value="0">Semua Label Utama (Izin, Sakit, Cuti)</option>';
+                res.data.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.name} (${c.code})`;
+                    filterCat.appendChild(opt);
+                });
+            }
+
+            if (subCat) {
+                subCat.innerHTML = '<option value="">-- Pilih Label Utama --</option>';
+                res.data.forEach(c => {
+                    if (c.is_active) {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = `${c.name} (${c.code})`;
+                        subCat.appendChild(opt);
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Gagal memuat kategori:", e);
+    }
+}
 
 async function loadSubPermits() {
     const catId = document.getElementById('filterCategory').value;

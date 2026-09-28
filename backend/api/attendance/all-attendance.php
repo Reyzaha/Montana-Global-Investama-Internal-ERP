@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 try {
     $month = $_GET['month'] ?? date('m');
     $year = $_GET['year'] ?? date('Y');
+    $userId = isset($_GET['user_id']) && (int)$_GET['user_id'] > 0 ? (int)$_GET['user_id'] : 0;
 
     // Limit to 1 year back
     $requestDate = strtotime("$year-$month-01");
@@ -26,15 +27,38 @@ try {
         sendError('Data older than 1 year is archived.', 400);
     }
 
+    $where = ["MONTH(a.date) = :month", "YEAR(a.date) = :year"];
+    $params = [':month' => $month, ':year' => $year];
+
+    if ($userId > 0) {
+        $where[] = "a.user_id = :user_id";
+        $params[':user_id'] = $userId;
+    }
+
+    $whereClause = implode(" AND ", $where);
+
     $stmt = $pdo->prepare("
-        SELECT a.id, a.user_id, u.email as employee_email, up.name as employee_name, a.date, a.check_in, a.break_start, a.break_end, a.check_out, a.status 
+        SELECT 
+            a.id, 
+            a.user_id, 
+            u.email as employee_email, 
+            COALESCE(up.name, u.email) as employee_name, 
+            COALESCE(up.position, r.name) as employee_position,
+            r.name as role_name,
+            a.date, 
+            a.check_in, 
+            a.break_start, 
+            a.break_end, 
+            a.check_out, 
+            a.status 
         FROM attendances a
         JOIN users u ON a.user_id = u.id
         LEFT JOIN user_profiles up ON u.id = up.user_id
-        WHERE MONTH(a.date) = ? AND YEAR(a.date) = ?
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE {$whereClause}
         ORDER BY a.date DESC, u.email ASC
     ");
-    $stmt->execute([$month, $year]);
+    $stmt->execute($params);
     $attendances = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Apply custom rule for montanaglobalinvestamait@gmail.com
@@ -45,7 +69,21 @@ try {
     }
     unset($att);
 
-    sendSuccess($attendances, 'All attendance retrieved successfully.');
+    // Fetch active employees for dropdown filter
+    $stmtUsers = $pdo->query("
+        SELECT u.id, u.email, COALESCE(up.name, u.email) as name, COALESCE(up.position, r.name) as position, r.name as role_name 
+        FROM users u 
+        LEFT JOIN user_profiles up ON u.id = up.user_id 
+        JOIN roles r ON u.role_id = r.id
+        WHERE u.status = 'active'
+        ORDER BY name ASC
+    ");
+    $employees = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
+
+    sendSuccess([
+        'attendances' => $attendances,
+        'employees' => $employees
+    ], 'All attendance retrieved successfully.');
 } catch (Exception $e) {
     sendError('Failed to fetch attendance: ' . $e->getMessage(), 500);
 }

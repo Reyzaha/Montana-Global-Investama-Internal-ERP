@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Permit Approval - MGI ERP / HRIS</title>
+  <title>Permit Management & Approval - MGI ERP / HRIS</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Custom Design System & Layout -->
-  <link rel="stylesheet" href="../../assets/css/global.css">
-  <link rel="stylesheet" href="../../assets/css/layout.css">
+  <link rel="stylesheet" href="../../assets/css/global.css?v=2.2.0">
+  <link rel="stylesheet" href="../../assets/css/layout.css?v=2.2.0">
 </head>
 <body>
 
@@ -36,94 +36,225 @@
               <ol class="breadcrumb mb-1 small">
                 <li class="breadcrumb-item"><a href="/frontend/dashboard.html">MGI ERP</a></li>
                 <li class="breadcrumb-item">HRGA Management</li>
-                <li class="breadcrumb-item active" aria-current="page">Permit Approval</li>
+                <li class="breadcrumb-item active" aria-current="page">Permit Management</li>
               </ol>
             </nav>
-            <h4 class="fw-bold text-dark mb-1">Permit Approval & Review</h4>
-            <p class="text-muted mb-0">Review and process employee permit requests (Izin, Sakit, Cuti).</p>
-          </div>
-          <div>
-            <a href="permit-sub-types.html" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
-              <i class="bi bi-tags me-1"></i> Kelola Sub-Jenis Izin
-            </a>
+            <h4 class="fw-bold text-dark mb-1">Manajemen & Persetujuan Permit</h4>
+            <p class="text-muted mb-0">Kelola persetujuan izin karyawan, 3 label utama (Izin, Sakit, Cuti), dan konfigurasi sub-jenis perizinan.</p>
           </div>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="row g-3 mb-4">
-          <div class="col-sm-6 col-lg-3">
-            <div class="card border-0 shadow-sm border-start border-4 border-warning h-100">
-              <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase">Pending HRGA</div>
-                <h4 class="fw-bold mt-1 mb-0" id="countPendingHrga">-</h4>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <div class="card border-0 shadow-sm border-start border-4 border-info h-100">
-              <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase">Pending PM</div>
-                <h4 class="fw-bold mt-1 mb-0" id="countPendingPm">-</h4>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
-              <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase">Approved</div>
-                <h4 class="fw-bold mt-1 mb-0" id="countApproved">-</h4>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <div class="card border-0 shadow-sm border-start border-4 border-danger h-100">
-              <div class="card-body">
-                <div class="text-muted small fw-semibold text-uppercase">Rejected</div>
-                <h4 class="fw-bold mt-1 mb-0" id="countRejected">-</h4>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded-3 border" id="permitTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tab-requests-pill" data-bs-toggle="pill" data-bs-target="#tab-requests" type="button" role="tab">
+              <i class="bi bi-clock-history me-1"></i> Pengajuan & Approval Permit
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-main-types-pill" data-bs-toggle="pill" data-bs-target="#tab-main-types" type="button" role="tab">
+              <i class="bi bi-tags-fill me-1"></i> 3 Label Utama (Izin, Sakit, Cuti)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-sub-types-pill" data-bs-toggle="pill" data-bs-target="#tab-sub-types" type="button" role="tab">
+              <i class="bi bi-diagram-3-fill me-1"></i> Sub-Jenis dari Label Utama
+            </button>
+          </li>
+        </ul>
 
-        <!-- Filter & Table Card -->
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h5 class="card-title fw-bold mb-0">Permit Requests</h5>
-            <div class="d-flex flex-wrap gap-2">
-              <select id="filterStatus" class="form-select form-select-sm" style="width: 150px;">
-                <option value="">All Status</option>
-                <option value="pending_hrga">Pending HRGA</option>
-                <option value="pending_pm">Pending PM</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-              <button class="btn btn-primary btn-sm" id="btnApplyFilter"><i class="bi bi-filter"></i> Apply</button>
+        <!-- Tab Content -->
+        <div class="tab-content" id="permitTabsContent">
+          
+          <!-- ==================================================== -->
+          <!-- TAB 1: PENGAJUAN & APPROVAL PERMIT                   -->
+          <!-- ==================================================== -->
+          <div class="tab-pane fade show active" id="tab-requests" role="tabpanel">
+            <!-- Summary Cards -->
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm border-start border-4 border-warning h-100">
+                  <div class="card-body">
+                    <div class="text-muted small fw-semibold text-uppercase">Pending HRGA</div>
+                    <h4 class="fw-bold mt-1 mb-0" id="countPendingHrga">-</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm border-start border-4 border-info h-100">
+                  <div class="card-body">
+                    <div class="text-muted small fw-semibold text-uppercase">Pending PM</div>
+                    <h4 class="fw-bold mt-1 mb-0" id="countPendingPm">-</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm border-start border-4 border-success h-100">
+                  <div class="card-body">
+                    <div class="text-muted small fw-semibold text-uppercase">Approved</div>
+                    <h4 class="fw-bold mt-1 mb-0" id="countApproved">-</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-3">
+                <div class="card border-0 shadow-sm border-start border-4 border-danger h-100">
+                  <div class="card-body">
+                    <div class="text-muted small fw-semibold text-uppercase">Rejected</div>
+                    <h4 class="fw-bold mt-1 mb-0" id="countRejected">-</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter & Table Card -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h5 class="card-title fw-bold mb-0">Daftar Pengajuan Permit Pegawai</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  <select id="filterStatus" class="form-select form-select-sm" style="width: 160px;">
+                    <option value="">Semua Status</option>
+                    <option value="pending_hrga">Pending HRGA</option>
+                    <option value="pending_pm">Pending PM</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" id="btnApplyFilter"><i class="bi bi-filter"></i> Filter</button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Karyawan</th>
+                        <th>Kategori & Sub-Izin</th>
+                        <th>Rentang Tanggal</th>
+                        <th>Status</th>
+                        <th>Diajukan</th>
+                        <th class="pe-4 text-end">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="permitTableBody">
+                      <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                          <div class="spinner-border spinner-border-sm me-2" role="status"></div> Memuat pengajuan permit...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th class="ps-4">ID</th>
-                    <th>Employee</th>
-                    <th>Type</th>
-                    <th>Date Range</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th class="pe-4 text-end">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="permitTableBody">
-                  <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">
-                      <div class="spinner-border spinner-border-sm me-2" role="status"></div> Loading permits...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+
+          <!-- ==================================================== -->
+          <!-- TAB 2: 3 LABEL UTAMA (IZIN, SAKIT, CUTI)             -->
+          <!-- ==================================================== -->
+          <div class="tab-pane fade" id="tab-main-types" role="tabpanel">
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                  <h5 class="card-title fw-bold mb-0">Master 3 Label Utama Permit</h5>
+                  <small class="text-muted">Kelola kategori utama perizinan: Izin, Sakit, Cuti, serta aturan berkas lampiran.</small>
+                </div>
+                <button class="btn btn-primary btn-sm px-3 shadow-sm" onclick="openCreateMainTypeModal()">
+                  <i class="bi bi-plus-circle me-1"></i> Tambah Label Utama Baru
+                </button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-4">No</th>
+                        <th>Kode Unik</th>
+                        <th>Nama Label Utama</th>
+                        <th>Deskripsi</th>
+                        <th>Wajib Berkas Lampiran</th>
+                        <th>Sub-Jenis Terkait</th>
+                        <th>Riwayat Terpakai</th>
+                        <th>Status Aktif</th>
+                        <th class="pe-4 text-end">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mainTypeTableBody">
+                      <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                          <div class="spinner-border spinner-border-sm me-2"></div> Memuat label utama...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- ==================================================== -->
+          <!-- TAB 3: SUB-JENIS DARI LABEL UTAMA                    -->
+          <!-- ==================================================== -->
+          <div class="tab-pane fade" id="tab-sub-types" role="tabpanel">
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-bottom py-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div>
+                    <h5 class="card-title fw-bold mb-0">Master Sub-Jenis Izin & Cuti Dinamis</h5>
+                    <small class="text-muted">Atur kuota hari, kewajiban surat dokter/lampiran, batasan gender, dan kebijakan gaji.</small>
+                  </div>
+                  <button class="btn btn-primary btn-sm px-3 shadow-sm" onclick="openCreateSubTypeModal()">
+                    <i class="bi bi-plus-circle me-1"></i> Tambah Sub-Jenis Baru
+                  </button>
+                </div>
+                <div class="row g-2 mt-2 pt-2 border-top align-items-center">
+                  <div class="col-md-4">
+                    <label class="small fw-semibold text-muted mb-1">Filter Label Utama:</label>
+                    <select class="form-select form-select-sm" id="filterSubCategory">
+                      <option value="0">Semua Label Utama (Izin, Sakit, Cuti)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="small fw-semibold text-muted mb-1">Status Keaktifan:</label>
+                    <select class="form-select form-select-sm" id="filterSubStatus">
+                      <option value="active">Hanya Sub-Jenis Aktif</option>
+                      <option value="all">Semua (Termasuk Nonaktif)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadSubTypes()">
+                      <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="ps-4">Sub-Jenis Izin</th>
+                        <th>Label Utama Induk</th>
+                        <th>Kuota & Periode</th>
+                        <th>Lampiran Berkas</th>
+                        <th>Batasan Gender</th>
+                        <th>Pembayaran Gaji</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-end">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="subTypeTableBody">
+                      <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                          <div class="spinner-border spinner-border-sm me-2"></div> Memuat sub-jenis izin...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
 
@@ -134,12 +265,12 @@
     </div>
   </div>
 
-  <!-- Detail Modal -->
+  <!-- Detail Modal Permit Application -->
   <div class="modal fade" id="permitDetailModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title fw-bold">Permit Detail</h5>
+          <h5 class="modal-title fw-bold">Detail Pengajuan Permit</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body" id="permitDetailBody">
@@ -152,15 +283,144 @@
     </div>
   </div>
 
+  <!-- Modal Tambah / Edit Label Utama (permit_types) -->
+  <div class="modal fade" id="modalMainType" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalMainTypeTitle"><i class="bi bi-tag-fill text-primary me-2"></i>Form Label Utama</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="formMainType">
+          <input type="hidden" id="mainTypeId" value="">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Nama Label Utama <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="mainTypeName" placeholder="Contoh: Izin, Sakit, atau Cuti" required>
+              <div class="form-text small">Label utama merupakan payung kategori perizinan pegawai.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Kode Unik Sistem</label>
+              <input type="text" class="form-control" id="mainTypeCode" placeholder="Contoh: izin, sakit, cuti (otomatis diisi jika kosong)">
+              <div class="form-text small">Huruf kecil tanpa spasi (misal: <code>izin</code>, <code>sakit</code>, <code>cuti</code>).</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Deskripsi Ketentuan</label>
+              <textarea class="form-control" id="mainTypeDescription" rows="2" placeholder="Ketentuan umum kategori ini..."></textarea>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 border">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="mainTypeRequiresAttachment">
+                <label class="form-check-label fw-semibold" for="mainTypeRequiresAttachment">Wajib Lampiran Berkas / Bukti Fisik Secara Umum</label>
+              </div>
+              <small class="text-muted d-block mt-1">Misal untuk kategori Sakit wajib menyertakan surat dokter.</small>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveMainType">Simpan Label Utama</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah / Edit Sub-Jenis Izin (permit_sub_types) -->
+  <div class="modal fade" id="modalSubType" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="modalSubTypeTitle"><i class="bi bi-diagram-3-fill text-primary me-2"></i>Form Sub-Jenis Izin</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="formSubType">
+          <input type="hidden" id="subTypeId" value="">
+          <div class="modal-body">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Label Utama Induk <span class="text-danger">*</span></label>
+                <select class="form-select" id="subCategoryId" required>
+                  <option value="">-- Pilih Label Utama --</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nama Sub-Jenis Izin <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="subName" placeholder="Contoh: Cuti Tahunan, Izin Terlambat, dll" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Deskripsi & Ketentuan</label>
+              <textarea class="form-control" id="subDescription" rows="2" placeholder="Penjelasan aturan pengajuan bagi karyawan..."></textarea>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Batas Kuota Hari</label>
+                <input type="number" step="0.5" class="form-control" id="subQuotaDays" placeholder="Contoh: 12 atau 90 (Kosongkan jika tanpa batas)">
+                <div class="form-text small">Kosongkan jika tidak ada batas kuota hari.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Periode Kuota</label>
+                <select class="form-select" id="subQuotaPeriod">
+                  <option value="per_year">Per Tahun Kalender (per_year)</option>
+                  <option value="per_event">Per Kejadian (per_event)</option>
+                  <option value="lifetime">Sekali Seumur Jabatan (lifetime)</option>
+                  <option value="unlimited">Tanpa Batas Kuota (unlimited)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Batasan Gender Khusus</label>
+                <select class="form-select" id="subGenderRestriction">
+                  <option value="any">Semua Karyawan (Laki-laki & Perempuan)</option>
+                  <option value="female">Khusus Perempuan (Contoh: Cuti Melahirkan)</option>
+                  <option value="male">Khusus Laki-laki (Contoh: Cuti Istri Melahirkan)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Kebijakan Pembayaran Gaji</label>
+                <select class="form-select" id="subIsPaid">
+                  <option value="1">Dibayar Penuh (Paid Leave)</option>
+                  <option value="0">Tidak Dibayar (Unpaid Leave)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 border mb-3">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="subRequiresAttachment">
+                <label class="form-check-label fw-semibold" for="subRequiresAttachment">Wajib Unggah Dokumen Lampiran</label>
+              </div>
+              <div id="subAttachmentGroup">
+                <label class="form-label small text-muted">Label / Nama Dokumen yang Diminta:</label>
+                <input type="text" class="form-control form-control-sm" id="subAttachmentLabel" placeholder="Contoh: Surat Keterangan Rawat Inap / Surat Dokter">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveSubType">Simpan Sub-Jenis</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../assets/js/api.js"></script>
-  <script src="../../assets/js/auth.js"></script>
-  <script src="../../utils/roles.js"></script>
-  <script src="../../components/toast.js"></script>
-  <script src="../../components/loading.js"></script>
-  <script src="../../components/sidebar.js"></script>
-  <script src="../../components/header.js"></script>
-  <script src="../../assets/js/hrga/permit.js"></script>
+  <script src="../../assets/js/api.js?v=2.2.0"></script>
+  <script src="../../assets/js/auth.js?v=2.2.0"></script>
+  <script src="../../utils/roles.js?v=2.2.0"></script>
+  <script src="../../components/toast.js?v=2.2.0"></script>
+  <script src="../../components/loading.js?v=2.2.0"></script>
+  <script src="../../components/sidebar.js?v=2.2.0"></script>
+  <script src="../../components/header.js?v=2.2.0"></script>
+  <script src="../../assets/js/hrga/permit.js?v=2.2.0"></script>
 </body>
 </html>
