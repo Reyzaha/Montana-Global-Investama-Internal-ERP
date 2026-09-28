@@ -180,10 +180,17 @@ function requireAuth(bool $allowPasswordChangePending = false): array {
         sendError('MFA verification required.', 403);
     }
 
+    // Jika password change masih pending, izinkan akses jika flag explicitly diset true
+    // atau di halaman dashboard agar popup modal ganti password bisa terbuka.
     if (!$allowPasswordChangePending && !empty($user['must_change_password'])) {
-        sendError('Anda wajib mengubah kata sandi pada login pertama sebelum dapat mengakses sistem.', 403, [
-            'must_change_password' => true
-        ]);
+        // Izinkan request dashboard stats & notifications agar tampilan dashboard tidak crash saat menampilkan modal
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $isDashboardAllowed = (strpos($requestUri, 'stats.php') !== false || strpos($requestUri, 'notifications.php') !== false);
+        if (!$isDashboardAllowed) {
+            sendError('Anda wajib mengubah kata sandi pada login pertama sebelum dapat mengakses sistem.', 403, [
+                'must_change_password' => true
+            ]);
+        }
     }
     
     return $user;

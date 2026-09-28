@@ -92,9 +92,9 @@ if ($isValid) {
     $forceChange = (int)$stmtForce->fetchColumn();
 
     $mustChangePassword = ($forceChange === 1) || !empty($_SESSION['must_change_password']);
-    $mfaRedirect = $mustChangePassword ? '/frontend/change-password.html' : '/frontend/dashboard.html';
+    $mfaRedirect = '/frontend/dashboard.html';
 
-    echo "[STEP 4] OTP Terverifikasi! mfa_verified diset TRUE. Redirect ke: {$mfaRedirect}: " . ($mfaRedirect === '/frontend/change-password.html' ? "PASS" : "FAIL") . PHP_EOL;
+    echo "[STEP 4] OTP Terverifikasi! mfa_verified diset TRUE. Redirect ke: {$mfaRedirect}: " . ($mfaRedirect === '/frontend/dashboard.html' ? "PASS" : "FAIL") . PHP_EOL;
 } else {
     die("OTP tidak valid!");
 }

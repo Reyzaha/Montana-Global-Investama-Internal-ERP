@@ -106,7 +106,7 @@ try {
             'mfa_verified' => true
         ],
         'must_change_password' => $mustChangePassword,
-        'redirect' => $mustChangePassword ? '/frontend/change-password.html' : '/frontend/dashboard.html'
+        'redirect' => '/frontend/dashboard.html'
     ], 'Verifikasi Google Authenticator berhasil! Selamat datang.');
 
 } catch (Exception $e) {

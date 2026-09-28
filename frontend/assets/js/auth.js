@@ -23,13 +23,8 @@ async function checkAuth(requiredRoles = []) {
       return null;
     }
 
-    // Check if user must change password on first login
-    if (user.must_change_password) {
-      if (!window.location.pathname.includes('change-password.html')) {
-        window.location.href = getAppUrl('/frontend/change-password.html');
-        return null;
-      }
-    }
+    // If user must change password, let caller or dashboard handle via popup modal
+    // (no longer redirecting to separate page)
 
     // Role check if specified
     if (requiredRoles.length > 0 && !requiredRoles.includes(user.role_id)) {

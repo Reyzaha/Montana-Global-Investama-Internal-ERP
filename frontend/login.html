@@ -168,8 +168,6 @@
               window.location.href = res.data.mfa_setup
                 ? getAppUrl('/frontend/mfa-setup.html')
                 : getAppUrl('/frontend/mfa.html');
-            } else if (res.data && res.data.must_change_password) {
-              window.location.href = getAppUrl('/frontend/change-password.html');
             } else {
               window.location.href = getAppUrl('/frontend/dashboard.html');
             }
