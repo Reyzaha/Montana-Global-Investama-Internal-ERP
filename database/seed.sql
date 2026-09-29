@@ -31,7 +31,7 @@ ON DUPLICATE KEY UPDATE `role_id` = VALUES(`role_id`), `status` = VALUES(`status
 -- 3. SEED PERMIT TYPES
 INSERT INTO `permit_types` (`id`, `code`, `name`, `description`, `requires_attachment`, `is_active`) VALUES
 (1, 'izin', 'Izin', 'Pengajuan izin', 0, 1),
-(2, 'sakit', 'Sakit', 'Pengajuan sakit', 1, 1),
+(2, 'sakit', 'Sakit', 'Pengajuan sakit', 0, 1),
 (3, 'cuti', 'Cuti', 'Pengajuan cuti', 0, 1)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`), `requires_attachment` = VALUES(`requires_attachment`), `is_active` = VALUES(`is_active`);
 

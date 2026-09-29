@@ -208,7 +208,8 @@ if ($method === 'GET') {
             }
         }
 
-        if (!$permit_sub_type_id && $permitType['requires_attachment'] && !$hasFile) {
+        $isSakitType = (strtolower($permitType['code']) === 'sakit' || stripos($permitType['name'], 'sakit') !== false);
+        if (!$permit_sub_type_id && $permitType['requires_attachment'] && !$hasFile && !$isSakitType) {
             sendError("Attachment is required for {$permitType['name']}.", 400);
         }
 

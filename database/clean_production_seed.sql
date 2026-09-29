@@ -856,7 +856,7 @@ CREATE TABLE `permit_types` (
 
 LOCK TABLES `permit_types` WRITE;
 /*!40000 ALTER TABLE `permit_types` DISABLE KEYS */;
-INSERT INTO `permit_types` VALUES (1,'izin','Izin','Pengajuan izin umum',0,1,'2026-09-01 08:35:37','2026-09-03 08:01:16'),(2,'sakit','Sakit','Pengajuan sakit (dengan surat dokter)',1,1,'2026-09-01 08:35:37','2026-09-03 08:01:16'),(3,'cuti','Cuti','Pengajuan cuti tahunan/khusus',0,1,'2026-09-01 08:35:37','2026-09-03 08:01:16');
+INSERT INTO `permit_types` VALUES (1,'izin','Izin','Pengajuan izin umum',0,1,'2026-09-01 08:35:37','2026-09-03 08:01:16'),(2,'sakit','Sakit','Pengajuan sakit (dengan surat dokter)',0,1,'2026-09-01 08:35:37','2026-09-03 08:01:16'),(3,'cuti','Cuti','Pengajuan cuti tahunan/khusus',0,1,'2026-09-01 08:35:37','2026-09-03 08:01:16');
 /*!40000 ALTER TABLE `permit_types` ENABLE KEYS */;
 UNLOCK TABLES;
 

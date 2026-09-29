@@ -42,7 +42,7 @@ async function handleCategoryChange(e) {
     }
 
     const pt = permitTypes.find(x => x.id === categoryId);
-    const isSakit = (pt && pt.code === 'sakit') || categoryId === 2;
+    const isSakit = (pt && (pt.code.startsWith('sakit') || pt.name.toLowerCase().includes('sakit'))) || categoryId === 2;
 
     const timeContainer = document.getElementById('permitTimeContainer');
     const timeInput = document.getElementById('permit_time');
@@ -188,8 +188,17 @@ async function loadMyLeaveBalance() {
 async function loadPermitTypes() {
     try {
         const res = await apiGet('/backend/api/hrga/permit-types.php');
-        if (res.success) {
-            permitTypes = res.data;
+        if (res.success && res.data) {
+            const seen = new Set();
+            permitTypes = [];
+            res.data.forEach(pt => {
+                const key = (pt.name || pt.code || '').trim().toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    permitTypes.push(pt);
+                }
+            });
+
             const select = document.getElementById('permit_type_id');
             select.innerHTML = '<option value="">-- Pilih Kategori Utama --</option>';
             permitTypes.forEach(pt => {
@@ -274,23 +283,32 @@ async function submitPermit(e) {
     const typeId = parseInt(document.getElementById('permit_type_id').value);
     let subTypeId = document.getElementById('permit_sub_type_id').value;
     const pt = permitTypes.find(x => x.id === typeId);
-    const isSakit = (pt && pt.code === 'sakit') || typeId === 2;
+    const isSakit = (pt && (pt.code.startsWith('sakit') || pt.name.toLowerCase().includes('sakit'))) || typeId === 2;
     const fileInput = document.getElementById('attachment');
     const timeInput = document.getElementById('permit_time');
     const permitTime = timeInput ? timeInput.value.trim() : '';
     
     // Check Sakit condition or standard sub-type
     if (isSakit) {
-        const isDenganSurat = document.getElementById('sakitDenganSurat').checked;
-        const targetSub = currentSubPermits.find(x => isDenganSurat ? x.name.includes('Surat Dokter') : x.name.includes('tanpa Surat'));
+        const isDenganSurat = document.getElementById('sakitDenganSurat') ? document.getElementById('sakitDenganSurat').checked : false;
+        let targetSub = null;
+        if (isDenganSurat) {
+            targetSub = currentSubPermits.find(x => x.name.toLowerCase().includes('dokter') || parseInt(x.requires_attachment) === 1);
+        } else {
+            targetSub = currentSubPermits.find(x => x.name.toLowerCase().includes('tanpa') || parseInt(x.requires_attachment) === 0);
+        }
         if (targetSub) {
             subTypeId = targetSub.id;
+        } else if (currentSubPermits.length > 0) {
+            subTypeId = currentSubPermits[0].id;
         }
+
         if (isDenganSurat && fileInput.files.length === 0) {
             alertDiv.textContent = 'Bukti Surat Keterangan Dokter wajib diunggah untuk pengajuan sakit dengan surat dokter.';
             alertDiv.classList.remove('d-none');
             return;
         }
+        // Jika sakit tanpa surat dokter, attachment opsional (tidak wajib)
     } else {
         if (!subTypeId) {
             alertDiv.textContent = 'Silakan pilih jenis pengajuan (sub-jenis) terlebih dahulu.';
@@ -307,7 +325,8 @@ async function submitPermit(e) {
             return;
         }
 
-        const requiresAttachment = (pt && pt.requires_attachment) || (sub && parseInt(sub.requires_attachment) === 1);
+        // Attachment hanya wajib jika sub-jenis secara spesifik mensyaratkan lampiran
+        const requiresAttachment = sub && parseInt(sub.requires_attachment) === 1;
         if (requiresAttachment && fileInput.files.length === 0) {
             const label = (sub && sub.attachment_label) ? sub.attachment_label : 'Dokumen Lampiran';
             alertDiv.textContent = `Lampiran berkas (${label}) wajib diunggah untuk jenis pengajuan ini.`;

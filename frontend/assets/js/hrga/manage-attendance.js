@@ -261,13 +261,22 @@ function applyLocalFilter() {
             }
 
             let badgeExtraClass = 'bg-primary-subtle text-primary border-primary-subtle';
-            let noDocBadge = '';
-            if (item.is_sakit_without_attachment) {
-                badgeExtraClass = 'bg-warning-subtle text-warning-emphasis border-warning';
-                noDocBadge = `<div class="badge bg-warning-subtle text-warning-emphasis border border-warning small mt-1 d-inline-block"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Sakit Tanpa Surat Dokter</div>`;
+            let docStatusBadge = '';
+            const isSakitRecord = (st === 'sakit' || catName.toLowerCase() === 'sakit');
+
+            if (isSakitRecord) {
+                if (item.is_sakit_without_attachment || !item.has_attachment) {
+                    badgeExtraClass = 'bg-danger-subtle text-danger border-danger';
+                    docStatusBadge = `<div class="badge bg-danger text-white small mt-1 d-inline-block fw-bold"><i class="bi bi-x-circle-fill me-1"></i>Tanpa Surat Dokter (No Attachment)</div>`;
+                } else {
+                    badgeExtraClass = 'bg-success-subtle text-success border-success';
+                    docStatusBadge = `<div class="badge bg-success text-white small mt-1 d-inline-block fw-bold"><i class="bi bi-file-earmark-check-fill me-1"></i>Ada Bukti Surat Dokter (Attachment)</div>`;
+                }
+            } else if (item.has_attachment) {
+                docStatusBadge = `<div class="badge bg-light text-dark border small mt-1 d-inline-block"><i class="bi bi-paperclip me-1"></i>Ada Lampiran</div>`;
             }
 
-            const desc = item.permit_description ? `<div class="text-muted small fst-italic mt-1">"${escapeHtml(item.permit_description)}"</div>` : '';
+            const desc = item.permit_description ? `<div class="text-muted small fst-italic mt-1"><i class="bi bi-chat-left-text me-1"></i>"${escapeHtml(item.permit_description)}"</div>` : '';
             
             keteranganHtml = `
                 <div class="text-start">
@@ -277,7 +286,7 @@ function applyLocalFilter() {
                     <div class="small text-success fw-bold">
                         <i class="bi bi-shield-check me-1"></i>Disetujui OM & HR
                     </div>
-                    ${noDocBadge}
+                    ${docStatusBadge}
                     ${desc}
                 </div>
             `;
@@ -404,15 +413,19 @@ function exportCsv() {
 
         let ket = item.notes || '-';
         if (item.has_approved_permit) {
-            const cat = item.permit_category_name || '';
-            let sub = item.permit_sub_type_name || '';
+            const cat = item.permit_category_name || (st === 'sakit' ? 'Sakit' : (st === 'cuti' ? 'Cuti' : 'Izin'));
+            let sub = item.permit_sub_type_name || cat;
             if (item.permit_time) {
                 sub += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
             }
-            if (item.is_sakit_without_attachment) {
-                sub += ' [Tanpa Surat Dokter]';
+            if (st === 'sakit' || cat.toLowerCase().includes('sakit')) {
+                if (item.is_sakit_without_attachment) {
+                    sub += ' [MERAH: Tanpa Surat Dokter (No Attachment)]';
+                } else {
+                    sub += ' [HIJAU: Ada Surat Dokter (Attachment)]';
+                }
             }
-            const desc = item.permit_description ? ` (Alasan: ${item.permit_description})` : '';
+            const desc = item.permit_description ? ` (Alasan: "${item.permit_description}")` : '';
             ket = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
         }
 
@@ -628,7 +641,7 @@ function exportPdf() {
 
                 let proofDoc = 'Form HRGA';
                 if (st === 'sakit' || cat === 'sakit') {
-                    proofDoc = item.is_sakit_without_attachment ? 'Tanpa Surat Dokter' : 'Ada Surat Dokter';
+                    proofDoc = item.is_sakit_without_attachment ? 'Tanpa Surat Dokter (No Attachment)' : 'Ada Surat Dokter (Attachment)';
                 } else if (item.has_attachment) {
                     proofDoc = 'Ada Lampiran';
                 }
@@ -640,7 +653,7 @@ function exportPdf() {
                     employee_position: item.employee_position || item.role_name || '-',
                     category: catName,
                     sub_type: subName,
-                    description: item.permit_description || item.notes || '-',
+                    description: item.permit_description ? `Alasan: "${item.permit_description}"` : (item.notes || '-'),
                     proof: proofDoc,
                     status: 'Disetujui OM & HR',
                     is_sakit_without_doc: (st === 'sakit' || cat === 'sakit') && item.is_sakit_without_attachment
@@ -1013,10 +1026,16 @@ function exportPdf() {
                             else if (val === 'sakit') data.cell.styles.textColor = [185, 28, 28];
                             else if (val === 'izin') data.cell.styles.textColor = [13, 148, 136];
                         }
-                        // Highlight Tanpa Surat Dokter
-                        if (data.column.index === 6 && data.cell.raw === 'Tanpa Surat Dokter') {
-                            data.cell.styles.textColor = [185, 28, 28];
-                            data.cell.styles.fontStyle = 'bold';
+                        // Highlight Kelengkapan Surat: HIJAU jika Ada Surat Dokter, MERAH jika Tanpa Surat Dokter
+                        if (data.column.index === 6) {
+                            const proofVal = (data.cell.raw || '');
+                            if (proofVal.includes('Ada Surat Dokter') || proofVal.includes('Ada Lampiran')) {
+                                data.cell.styles.textColor = [22, 101, 52]; // HIJAU
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (proofVal.includes('Tanpa Surat Dokter') || proofVal.includes('Tanpa Lampiran')) {
+                                data.cell.styles.textColor = [185, 28, 28]; // MERAH
+                                data.cell.styles.fontStyle = 'bold';
+                            }
                         }
                     }
                 }
@@ -1082,7 +1101,7 @@ function exportPdf() {
                     statusLabel = 'IZIN';
                     keterangan = 'Izin';
                 } else if (st === 'sakit') {
-                    statusLabel = 'SAKIT';
+                    statusLabel = r.is_sakit_without_attachment ? 'SAKIT (TANPA SURAT)' : 'SAKIT (ADA SURAT)';
                     keterangan = 'Sakit';
                 } else if (st === 'absent') {
                     statusLabel = 'ABSEN';
@@ -1090,16 +1109,23 @@ function exportPdf() {
                 }
 
                 if (r.has_approved_permit) {
-                    const cat = r.permit_category_name || '';
-                    let sub = r.permit_sub_type_name || '';
+                    const cat = r.permit_category_name || (st === 'sakit' ? 'Sakit' : (st === 'cuti' ? 'Cuti' : 'Izin'));
+                    let sub = r.permit_sub_type_name || cat;
                     if (r.permit_time) {
                         sub += ` (Pkl ${r.permit_time.substring(0, 5)} WIB)`;
                     }
-                    if (r.is_sakit_without_attachment) {
-                        sub += ' [Tanpa Surat Dokter]';
+                    let docBadge = '';
+                    if (st === 'sakit' || cat.toLowerCase().includes('sakit')) {
+                        if (r.is_sakit_without_attachment) {
+                            docBadge = ' [MERAH: Tanpa Surat Dokter]';
+                            statusLabel = 'SAKIT (TANPA SURAT)';
+                        } else {
+                            docBadge = ' [HIJAU: Ada Surat Dokter]';
+                            statusLabel = 'SAKIT (ADA SURAT)';
+                        }
                     }
-                    const desc = r.permit_description ? ` - ${r.permit_description}` : '';
-                    keterangan = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
+                    const desc = r.permit_description ? ` - Alasan: "${r.permit_description}"` : '';
+                    keterangan = `[${cat}: ${sub}${docBadge}] Disetujui OM & HR${desc}`;
                     if (st === 'late' && sub.toLowerCase().includes('terlambat')) {
                         statusLabel = 'TERLAMBAT (SAH)';
                     }
@@ -1145,16 +1171,26 @@ function exportPdf() {
                     7: { cellWidth: 46 }
                 },
                 didParseCell: function(data) {
-                    if (data.section === 'body' && data.column.index === 6) {
-                        const text = data.cell.raw;
-                        if (text === 'TEPAT WAKTU') {
-                            data.cell.styles.textColor = [22, 101, 52];
-                        } else if (text.includes('TERLAMBAT')) {
-                            data.cell.styles.textColor = [180, 83, 9];
-                        } else if (text === 'CUTI' || text === 'IZIN') {
-                            data.cell.styles.textColor = [30, 58, 138];
-                        } else if (text === 'SAKIT' || text === 'ABSEN') {
-                            data.cell.styles.textColor = [185, 28, 28];
+                    if (data.section === 'body') {
+                        if (data.column.index === 6) {
+                            const text = data.cell.raw;
+                            if (text === 'TEPAT WAKTU' || text === 'SAKIT (ADA SURAT)') {
+                                data.cell.styles.textColor = [22, 101, 52]; // Green
+                            } else if (text.includes('TERLAMBAT')) {
+                                data.cell.styles.textColor = [180, 83, 9];
+                            } else if (text === 'CUTI' || text === 'IZIN') {
+                                data.cell.styles.textColor = [30, 58, 138];
+                            } else if (text === 'SAKIT (TANPA SURAT)' || text === 'ABSEN' || text === 'SAKIT') {
+                                data.cell.styles.textColor = [185, 28, 28]; // Red
+                            }
+                        } else if (data.column.index === 7) {
+                            const ket = data.cell.raw || '';
+                            if (ket.includes('[MERAH: Tanpa Surat Dokter]')) {
+                                data.cell.styles.textColor = [185, 28, 28]; // Highlight Red
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (ket.includes('[HIJAU: Ada Surat Dokter]')) {
+                                data.cell.styles.textColor = [22, 101, 52]; // Highlight Green
+                            }
                         }
                     }
                 }

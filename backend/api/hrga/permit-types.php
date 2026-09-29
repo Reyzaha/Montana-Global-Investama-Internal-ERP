@@ -38,6 +38,7 @@ if ($method === 'GET') {
                 (SELECT COUNT(*) FROM `permits` WHERE `permit_type_id` = pt.`id`) AS total_permits
             FROM `permit_types` pt
             {$whereClause}
+            GROUP BY pt.`name`
             ORDER BY pt.`id` ASC
         ";
 
