@@ -101,9 +101,26 @@ function renderPermitTable(items) {
     items.forEach(p => {
         const tr = document.createElement('tr');
         const badge = getStatusBadge(p.status);
-        const attachmentBadge = p.attachment_path 
-            ? `<a href="/backend/${p.attachment_path}" target="_blank" class="badge bg-light text-primary border me-1 text-decoration-none"><i class="bi bi-paperclip"></i> Lampiran</a>` 
-            : '';
+        const isSakit = (p.permit_type_code === 'sakit') || (p.permit_type_name && p.permit_type_name.toLowerCase().includes('sakit'));
+        const hasAttachment = parseInt(p.has_attachment) > 0 || !!p.attachment_path;
+        const isSakitTanpaSurat = isSakit && (!hasAttachment || (p.permit_sub_type_name && p.permit_sub_type_name.toLowerCase().includes('tanpa surat')));
+
+        let attachmentBadge = hasAttachment 
+            ? `<span class="badge bg-light text-primary border me-1"><i class="bi bi-paperclip"></i> Ada Berkas</span>` 
+            : `<span class="badge bg-secondary-subtle text-muted border me-1"><i class="bi bi-file-earmark-x"></i> Tanpa Berkas</span>`;
+
+        if (isSakitTanpaSurat) {
+            attachmentBadge += `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning fw-bold d-block mt-1"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Sakit Tanpa Surat Dokter</span>`;
+        }
+
+        let typeText = escapeHtml(p.permit_type_name);
+        if (p.permit_sub_type_name) {
+            let subText = p.permit_sub_type_name;
+            if (p.permit_time) {
+                subText += ` - Pkl ${p.permit_time.substring(0, 5)} WIB`;
+            }
+            typeText += ` <small class="text-primary fw-normal d-block">(${escapeHtml(subText)})</small>`;
+        }
 
         const hrgaNote = p.hrga_approval_note 
             ? `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2"></i> "${escapeHtml(p.hrga_approval_note)}"</span>` 
@@ -116,7 +133,7 @@ function renderPermitTable(items) {
                 <div class="small text-muted">${escapeHtml(p.employee_email)}</div>
             </td>
             <td>
-                <span class="fw-medium">${escapeHtml(p.permit_type_name)}</span>
+                <div>${typeText}</div>
                 <div class="mt-1">${attachmentBadge}</div>
             </td>
             <td>
@@ -195,7 +212,38 @@ async function viewPermitDetail(id) {
             `).join('');
         }
 
+        const isSakit = (p.permit_type_code === 'sakit') || (p.permit_type_name && p.permit_type_name.toLowerCase().includes('sakit'));
+        const hasAttachment = (p.attachments && p.attachments.length > 0) || p.has_attachment;
+        const isSakitTanpaSurat = isSakit && (!hasAttachment || (p.permit_sub_type_name && p.permit_sub_type_name.toLowerCase().includes('tanpa surat')));
+
+        let sakitWarningHtml = '';
+        if (isSakitTanpaSurat) {
+            sakitWarningHtml = `
+                <div class="alert alert-warning border border-warning d-flex align-items-center mb-3 p-3 rounded-3 shadow-sm">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-3 me-3 flex-shrink-0"></i>
+                    <div>
+                        <div class="fw-bold text-dark">Catatan Persetujuan OM / PM:</div>
+                        <div class="small text-dark mt-1">
+                            Pengajuan izin sakit ini diajukan <strong>TANPA melampirkan Surat Keterangan Dokter</strong> dari RS/Klinik (istirahat mandiri).
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let timeRowHtml = '';
+        if (p.permit_time) {
+            timeRowHtml = `
+                <div class="col-md-6">
+                    <label class="small text-muted text-uppercase fw-bold">Jam Terlambat / Pulang Cepat</label>
+                    <div class="fw-bold text-primary fs-6"><i class="bi bi-clock-fill me-1"></i>Pkl ${p.permit_time.substring(0, 5)} WIB</div>
+                </div>
+            `;
+        }
+
         body.innerHTML = `
+            ${sakitWarningHtml}
+
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <label class="small text-muted text-uppercase fw-bold">Nama Karyawan</label>
@@ -204,7 +252,7 @@ async function viewPermitDetail(id) {
                 </div>
                 <div class="col-md-6">
                     <label class="small text-muted text-uppercase fw-bold">Jenis Izin / Permit</label>
-                    <div class="fw-bold text-primary fs-6">${escapeHtml(p.permit_type_name)}</div>
+                    <div class="fw-bold text-primary fs-6">${escapeHtml(p.permit_type_name)} ${p.permit_sub_type_name ? `<small class="text-secondary fw-normal">(${escapeHtml(p.permit_sub_type_name)})</small>` : ''}</div>
                 </div>
             </div>
 
@@ -213,6 +261,7 @@ async function viewPermitDetail(id) {
                     <label class="small text-muted text-uppercase fw-bold">Rentang Tanggal</label>
                     <div class="fw-semibold text-dark"><i class="bi bi-calendar3 me-1 text-primary"></i> ${p.start_date} s/d ${p.end_date}</div>
                 </div>
+                ${timeRowHtml}
                 <div class="col-md-6">
                     <label class="small text-muted text-uppercase fw-bold">Status Saat Ini</label>
                     <div>${getStatusBadge(p.status)}</div>

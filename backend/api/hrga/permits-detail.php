@@ -21,11 +21,13 @@ if (!$permitId) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT p.id, p.user_id, u.email as employee_email, pt.name as permit_type_name, pt.code as permit_type_code,
+        SELECT p.id, p.user_id, u.email as employee_email, COALESCE(up.name, u.email) as employee_name,
+               pt.name as permit_type_name, pt.code as permit_type_code,
                p.permit_sub_type_id, pst.name as permit_sub_type_name,
-               p.start_date, p.end_date, p.description, p.status, p.created_at
+               p.start_date, p.end_date, p.permit_time, p.description, p.status, p.created_at
         FROM permits p
         JOIN users u ON p.user_id = u.id
+        LEFT JOIN user_profiles up ON u.id = up.user_id
         JOIN permit_types pt ON p.permit_type_id = pt.id
         LEFT JOIN permit_sub_types pst ON p.permit_sub_type_id = pst.id
         WHERE p.id = ?
@@ -47,16 +49,22 @@ try {
     $stmt->execute([$permitId]);
     $permit['attachments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $hasAttachment = count($permit['attachments']) > 0;
+    $permit['has_attachment'] = $hasAttachment;
+    $permit['is_sakit_without_attachment'] = (strtolower($permit['permit_type_code'] ?? '') === 'sakit' && !$hasAttachment);
+
     // Get Approval History
     $stmt = $pdo->prepare("
-        SELECT pa.id, u.email as approver_email, pa.approver_role, pa.step, pa.status, pa.note, pa.approved_at
+        SELECT pa.id, u.email as approver_email, COALESCE(up.name, u.email) as approver_name, pa.approver_role, pa.step, pa.status, pa.note, pa.approved_at
         FROM permit_approvals pa
         JOIN users u ON pa.approver_user_id = u.id
+        LEFT JOIN user_profiles up ON u.id = up.user_id
         WHERE pa.permit_id = ?
         ORDER BY pa.approved_at ASC
     ");
     $stmt->execute([$permitId]);
     $permit['history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $permit['approvals'] = $permit['history']; // support both aliases
 
     sendSuccess($permit, 'Permit detail retrieved.');
 

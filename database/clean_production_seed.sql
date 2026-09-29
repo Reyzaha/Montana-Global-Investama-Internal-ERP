@@ -874,6 +874,7 @@ CREATE TABLE `permits` (
   `permit_sub_type_id` int(11) DEFAULT NULL,
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
+  `permit_time` time DEFAULT NULL,
   `description` text NOT NULL,
   `status` enum('pending_hrga','pending_pm','approved','rejected') DEFAULT 'pending_hrga',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),

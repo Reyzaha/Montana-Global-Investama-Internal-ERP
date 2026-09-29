@@ -133,11 +133,13 @@ try {
             r.name as role_name,
             p.start_date,
             p.end_date,
+            p.permit_time,
             p.description,
             p.status as permit_status,
             pt.code as category_code,
             pt.name as category_name,
-            pst.name as sub_type_name
+            pst.name as sub_type_name,
+            (SELECT COUNT(*) FROM permit_attachments WHERE permit_id = p.id) as has_attachment
         FROM permits p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN user_profiles up ON u.id = up.user_id
@@ -160,8 +162,10 @@ try {
 
         $catName = $p['category_name'];
         $subName = !empty($p['sub_type_name']) ? $p['sub_type_name'] : $catName;
+        $timeStr = !empty($p['permit_time']) ? " (Pkl " . substr($p['permit_time'], 0, 5) . ")" : "";
+        $noDocStr = (strtolower($p['category_code']) === 'sakit' && (int)$p['has_attachment'] === 0) ? " [Tanpa Surat Dokter]" : "";
         $reason = !empty($p['description']) ? " - Alasan: {$p['description']}" : "";
-        $noteText = "[{$catName}: {$subName}] Disetujui OM & HR{$reason}";
+        $noteText = "[{$catName}: {$subName}{$timeStr}{$noDocStr}] Disetujui OM & HR{$reason}";
 
         while ($cur <= $last) {
             $curDateStr = $cur->format('Y-m-d');
@@ -174,8 +178,11 @@ try {
                 $attendances[$targetIdx]['permit_category'] = strtolower($p['category_code']);
                 $attendances[$targetIdx]['permit_category_name'] = $catName;
                 $attendances[$targetIdx]['permit_sub_type_name'] = $subName;
+                $attendances[$targetIdx]['permit_time'] = $p['permit_time'];
                 $attendances[$targetIdx]['permit_description'] = $p['description'];
                 $attendances[$targetIdx]['has_approved_permit'] = true;
+                $attendances[$targetIdx]['has_attachment'] = (int)$p['has_attachment'] > 0;
+                $attendances[$targetIdx]['is_sakit_without_attachment'] = (strtolower($p['category_code']) === 'sakit' && (int)$p['has_attachment'] === 0);
                 $attendances[$targetIdx]['permit_notes'] = $noteText;
                 $attendances[$targetIdx]['notes'] = $noteText;
 
@@ -203,8 +210,11 @@ try {
                     'permit_category' => strtolower($p['category_code']),
                     'permit_category_name' => $catName,
                     'permit_sub_type_name' => $subName,
+                    'permit_time' => $p['permit_time'],
                     'permit_description' => $p['description'],
                     'has_approved_permit' => true,
+                    'has_attachment' => (int)$p['has_attachment'] > 0,
+                    'is_sakit_without_attachment' => (strtolower($p['category_code']) === 'sakit' && (int)$p['has_attachment'] === 0),
                     'permit_notes' => $noteText,
                     'notes' => $noteText
                 ];

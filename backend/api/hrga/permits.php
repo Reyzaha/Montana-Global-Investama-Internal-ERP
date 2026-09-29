@@ -70,12 +70,15 @@ if ($method === 'GET') {
         $total = $stmtCount->fetchColumn();
 
         // Get Data
-        $sql = "SELECT p.id, p.user_id, u.email as employee_email, pt.name as permit_type_name, 
+        $sql = "SELECT p.id, p.user_id, u.email as employee_email, 
+                COALESCE(up.name, u.email) as employee_name,
+                pt.code as permit_type_code, pt.name as permit_type_name, 
                 p.permit_sub_type_id, pst.name as permit_sub_type_name,
-                p.start_date, p.end_date, p.description, p.status, p.created_at,
+                p.start_date, p.end_date, p.permit_time, p.description, p.status, p.created_at,
                 (SELECT COUNT(*) FROM permit_attachments WHERE permit_id = p.id) as has_attachment
                 FROM permits p
                 JOIN users u ON p.user_id = u.id
+                LEFT JOIN user_profiles up ON u.id = up.user_id
                 JOIN permit_types pt ON p.permit_type_id = pt.id
                 LEFT JOIN permit_sub_types pst ON p.permit_sub_type_id = pst.id
                 $whereClause
@@ -110,6 +113,7 @@ if ($method === 'GET') {
         $permit_sub_type_id = !empty($_POST['permit_sub_type_id']) ? (int)$_POST['permit_sub_type_id'] : null;
         $start_date = $_POST['start_date'] ?? null;
         $end_date = $_POST['end_date'] ?? null;
+        $permit_time = !empty($_POST['permit_time']) ? trim($_POST['permit_time']) : null;
         $description = $_POST['description'] ?? null;
 
         $errors = [];
@@ -120,6 +124,15 @@ if ($method === 'GET') {
         
         if (!empty($errors)) {
             sendValidationError($errors, 'Validation error');
+        }
+
+        // Normalize permit_time if provided
+        if ($permit_time) {
+            if (preg_match('/^(\d{1,2}):(\d{2})$/', $permit_time, $m)) {
+                $permit_time = str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2] . ':00';
+            } elseif (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $permit_time)) {
+                sendError('Format jam tidak valid (harus HH:MM).', 400);
+            }
         }
 
         // Check if permit type requires attachment
@@ -146,6 +159,12 @@ if ($method === 'GET') {
 
             if (!$subType) {
                 sendError('Sub-tipe izin tidak valid atau tidak cocok dengan kategori yang dipilih.', 400);
+            }
+
+            // Validasi wajib jam untuk Terlambat dan Pulang Cepat
+            $isTimeRequired = (stripos($subType['name'], 'Terlambat') !== false || stripos($subType['name'], 'Pulang Cepat') !== false);
+            if ($isTimeRequired && empty($permit_time)) {
+                sendError("Jam wajib diisi untuk permohonan '{$subType['name']}'.", 400);
             }
 
             // Validasi Gender Restriction
@@ -195,8 +214,8 @@ if ($method === 'GET') {
 
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("INSERT INTO permits (user_id, permit_type_id, permit_sub_type_id, start_date, end_date, description, status) VALUES (?, ?, ?, ?, ?, ?, 'pending_hrga')");
-        $stmt->execute([$user['id'], $permit_type_id, $permit_sub_type_id, $start_date, $end_date, $description]);
+        $stmt = $pdo->prepare("INSERT INTO permits (user_id, permit_type_id, permit_sub_type_id, start_date, end_date, permit_time, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_hrga')");
+        $stmt->execute([$user['id'], $permit_type_id, $permit_sub_type_id, $start_date, $end_date, $permit_time, $description]);
         $permitId = $pdo->lastInsertId();
 
         if ($hasFile) {

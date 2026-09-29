@@ -145,6 +145,16 @@
               <div class="form-text small text-muted" id="subTypeDetailHint"></div>
             </div>
 
+            <!-- Input Jam Khusus Izin Terlambat / Pulang Cepat -->
+            <div class="mb-3 d-none" id="permitTimeContainer">
+              <label class="form-label fw-semibold" id="permitTimeLabel">Jam Izin <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-primary"><i class="bi bi-clock-fill"></i></span>
+                <input type="time" class="form-control" id="permit_time" step="60">
+              </div>
+              <div class="form-text small text-muted" id="permitTimeHelpText">Tentukan jam perkiraan tiba terlambat atau jam rencana pulang cepat.</div>
+            </div>
+
             <!-- Khusus Kategori Sakit: Tanpa jenis sakit rumit, opsi Surat Dokter vs Tanpa Surat Dokter -->
             <div class="mb-3 d-none" id="sakitConditionContainer">
               <label class="form-label fw-semibold">Keterangan Sakit <span class="text-danger">*</span></label>

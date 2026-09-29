@@ -253,17 +253,29 @@ function applyLocalFilter() {
         // Jika terdapat pengajuan Izin/Cuti/Sakit yang disetujui OM & HR
         if (item.has_approved_permit) {
             const catName = item.permit_category_name || (st === 'cuti' ? 'Cuti' : (st === 'sakit' ? 'Sakit' : 'Izin'));
-            const subName = item.permit_sub_type_name || catName;
+            let subName = item.permit_sub_type_name || catName;
+            if (item.permit_time) {
+                subName += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
+            }
+
+            let badgeExtraClass = 'bg-primary-subtle text-primary border-primary-subtle';
+            let noDocBadge = '';
+            if (item.is_sakit_without_attachment) {
+                badgeExtraClass = 'bg-warning-subtle text-warning-emphasis border-warning';
+                noDocBadge = `<div class="badge bg-warning-subtle text-warning-emphasis border border-warning small mt-1 d-inline-block"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Sakit Tanpa Surat Dokter</div>`;
+            }
+
             const desc = item.permit_description ? `<div class="text-muted small fst-italic mt-1">"${escapeHtml(item.permit_description)}"</div>` : '';
             
             keteranganHtml = `
                 <div class="text-start">
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold mb-1">
+                    <span class="badge ${badgeExtraClass} border fw-semibold mb-1">
                         <i class="bi bi-patch-check-fill me-1"></i>${escapeHtml(catName)}: ${escapeHtml(subName)}
                     </span>
                     <div class="small text-success fw-bold">
                         <i class="bi bi-shield-check me-1"></i>Disetujui OM & HR
                     </div>
+                    ${noDocBadge}
                     ${desc}
                 </div>
             `;
@@ -391,7 +403,13 @@ function exportCsv() {
         let ket = item.notes || '-';
         if (item.has_approved_permit) {
             const cat = item.permit_category_name || '';
-            const sub = item.permit_sub_type_name || '';
+            let sub = item.permit_sub_type_name || '';
+            if (item.permit_time) {
+                sub += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
+            }
+            if (item.is_sakit_without_attachment) {
+                sub += ' [Tanpa Surat Dokter]';
+            }
             const desc = item.permit_description ? ` (Alasan: ${item.permit_description})` : '';
             ket = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
         }
@@ -771,7 +789,13 @@ function exportPdf() {
 
             if (r.has_approved_permit) {
                 const cat = r.permit_category_name || '';
-                const sub = r.permit_sub_type_name || '';
+                let sub = r.permit_sub_type_name || '';
+                if (r.permit_time) {
+                    sub += ` (Pkl ${r.permit_time.substring(0, 5)} WIB)`;
+                }
+                if (r.is_sakit_without_attachment) {
+                    sub += ' [Tanpa Surat Dokter]';
+                }
                 const desc = r.permit_description ? ` - ${r.permit_description}` : '';
                 keterangan = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
                 if (st === 'late' && sub.toLowerCase().includes('terlambat')) {

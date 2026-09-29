@@ -102,13 +102,24 @@ function renderPermits(data) {
         
         const badge = getStatusBadge(p.status);
         const hasAttachment = parseInt(p.has_attachment) > 0;
-        const attachmentBadge = hasAttachment 
+        const isSakit = (p.permit_type_code === 'sakit') || (p.permit_type_name && p.permit_type_name.toLowerCase().includes('sakit'));
+        const isSakitTanpaSurat = isSakit && (!hasAttachment || (p.permit_sub_type_name && p.permit_sub_type_name.toLowerCase().includes('tanpa surat')));
+
+        let attachmentBadge = hasAttachment 
             ? `<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-paperclip me-1"></i>Ada Bukti Berkas</span>`
             : `<span class="badge bg-danger-subtle text-danger border border-danger fw-semibold"><i class="bi bi-exclamation-octagon-fill me-1"></i>Tanpa Berkas</span>`;
 
+        if (isSakitTanpaSurat) {
+            attachmentBadge += `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning fw-bold d-block mt-1"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Sakit Tanpa Surat Dokter</span>`;
+        }
+
         let typeDisplay = `<span class="fw-semibold text-dark">${p.permit_type_name}</span>`;
         if (p.permit_sub_type_name) {
-            typeDisplay += ` <small class="text-primary fw-normal d-block">(${p.permit_sub_type_name})</small>`;
+            let subText = p.permit_sub_type_name;
+            if (p.permit_time) {
+                subText += ` - Pkl ${p.permit_time.substring(0, 5)} WIB`;
+            }
+            typeDisplay += ` <small class="text-primary fw-normal d-block">(${subText})</small>`;
         }
 
         const employeeDisplay = p.employee_name 
@@ -186,6 +197,36 @@ async function viewPermit(id) {
             typeDisplay += ` <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal ms-1">${p.permit_sub_type_name}</span>`;
         }
 
+        const isSakit = (p.permit_type_code === 'sakit') || (p.permit_type_name && p.permit_type_name.toLowerCase().includes('sakit'));
+        const hasAttachment = (p.attachments && p.attachments.length > 0) || p.has_attachment;
+        const isSakitTanpaSurat = isSakit && (!hasAttachment || (p.permit_sub_type_name && p.permit_sub_type_name.toLowerCase().includes('tanpa surat')));
+
+        let sakitNoticeHtml = '';
+        if (isSakitTanpaSurat) {
+            sakitNoticeHtml = `
+                <div class="alert alert-warning border border-warning d-flex align-items-center mb-3 p-3 rounded-3 shadow-sm">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-3 me-3 flex-shrink-0"></i>
+                    <div>
+                        <div class="fw-bold text-dark">Catatan Khusus HRGA & Approver:</div>
+                        <div class="small text-dark mt-1">
+                            Karyawan mengajukan <strong>Izin Sakit TANPA melampirkan Surat Keterangan Dokter</strong> dari RS/Klinik. Mohon periksa deskripsi pengajuan dan berikan catatan sebelum persetujuan/penolakan.
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let timeRowHtml = '';
+        if (p.permit_time) {
+            const timeFormatted = p.permit_time.substring(0, 5);
+            timeRowHtml = `
+                <div class="col-md-6">
+                    <div class="small text-muted text-uppercase fw-bold mb-1">Jam Terlambat / Pulang Cepat</div>
+                    <div class="fw-bold text-primary"><i class="bi bi-clock-fill me-1"></i>Pkl ${timeFormatted} WIB</div>
+                </div>
+            `;
+        }
+
         let historyHtml = '';
         if (p.history.length > 0) {
             historyHtml = p.history.map(h => `
@@ -205,6 +246,8 @@ async function viewPermit(id) {
         }
 
         body.innerHTML = `
+            ${sakitNoticeHtml}
+
             <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="small text-muted text-uppercase fw-bold mb-1">Employee</div>
@@ -222,6 +265,7 @@ async function viewPermit(id) {
                     <div class="small text-muted text-uppercase fw-bold mb-1">Duration</div>
                     <div>${p.start_date} <i class="bi bi-arrow-right mx-1"></i> ${p.end_date}</div>
                 </div>
+                ${timeRowHtml}
                 <div class="col-md-6">
                     <div class="small text-muted text-uppercase fw-bold mb-1">Status</div>
                     <div>${getStatusBadge(p.status)}</div>

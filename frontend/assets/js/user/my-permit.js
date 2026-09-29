@@ -44,6 +44,14 @@ async function handleCategoryChange(e) {
     const pt = permitTypes.find(x => x.id === categoryId);
     const isSakit = (pt && pt.code === 'sakit') || categoryId === 2;
 
+    const timeContainer = document.getElementById('permitTimeContainer');
+    const timeInput = document.getElementById('permit_time');
+    if (timeContainer) timeContainer.classList.add('d-none');
+    if (timeInput) {
+        timeInput.removeAttribute('required');
+        timeInput.value = '';
+    }
+
     if (isSakit) {
         // Requirement 4: Sakit tidak perlu jenis sakit, hanya opsi surat dokter vs tanpa surat
         subContainer.classList.add('d-none');
@@ -113,11 +121,39 @@ function handleSubTypeChange(e) {
     const sub = currentSubPermits.find(x => x.id === subId);
     const reqLabel = document.getElementById('attachmentRequiredLabel');
     const hint = document.getElementById('subTypeDetailHint');
+    const timeContainer = document.getElementById('permitTimeContainer');
+    const timeInput = document.getElementById('permit_time');
+    const timeLabel = document.getElementById('permitTimeLabel');
+    const timeHelp = document.getElementById('permitTimeHelpText');
 
     if (!sub) {
         reqLabel.classList.add('d-none');
         hint.textContent = '';
+        if (timeContainer) timeContainer.classList.add('d-none');
+        if (timeInput) {
+            timeInput.removeAttribute('required');
+            timeInput.value = '';
+        }
         return;
+    }
+
+    // Handle Terlambat & Pulang Cepat Time Input
+    if (sub.name.toLowerCase().includes('terlambat')) {
+        if (timeContainer) timeContainer.classList.remove('d-none');
+        if (timeLabel) timeLabel.innerHTML = 'Perkiraan Jam Tiba di Kantor <span class="text-danger">*</span>';
+        if (timeHelp) timeHelp.textContent = 'Tentukan jam perkiraan tiba di kantor (Contoh: 08:30). Jam masuk resmi: 08:00 WIB.';
+        if (timeInput) timeInput.setAttribute('required', 'required');
+    } else if (sub.name.toLowerCase().includes('pulang cepat')) {
+        if (timeContainer) timeContainer.classList.remove('d-none');
+        if (timeLabel) timeLabel.innerHTML = 'Rencana Jam Pulang Cepat <span class="text-danger">*</span>';
+        if (timeHelp) timeHelp.textContent = 'Tentukan jam rencana keluar kantor lebih awal (Contoh: 15:00). Jam pulang resmi: 17:00 WIB.';
+        if (timeInput) timeInput.setAttribute('required', 'required');
+    } else {
+        if (timeContainer) timeContainer.classList.add('d-none');
+        if (timeInput) {
+            timeInput.removeAttribute('required');
+            timeInput.value = '';
+        }
     }
 
     if (sub.name === 'Cuti Tahunan') {
@@ -198,7 +234,11 @@ async function loadMyPermits() {
                 const attachIcon = p.has_attachment > 0 ? '<i class="bi bi-paperclip text-muted"></i> ' : '';
                 let typeDisplay = p.permit_type_name;
                 if (p.permit_sub_type_name) {
-                    typeDisplay += ` <small class="text-primary fw-normal">(${p.permit_sub_type_name})</small>`;
+                    let subText = p.permit_sub_type_name;
+                    if (p.permit_time) {
+                        subText += ` (Pkl ${p.permit_time.substring(0, 5)})`;
+                    }
+                    typeDisplay += ` <small class="text-primary fw-normal">(${subText})</small>`;
                 }
 
                 tr.innerHTML = `
@@ -236,6 +276,8 @@ async function submitPermit(e) {
     const pt = permitTypes.find(x => x.id === typeId);
     const isSakit = (pt && pt.code === 'sakit') || typeId === 2;
     const fileInput = document.getElementById('attachment');
+    const timeInput = document.getElementById('permit_time');
+    const permitTime = timeInput ? timeInput.value.trim() : '';
     
     // Check Sakit condition or standard sub-type
     if (isSakit) {
@@ -256,6 +298,15 @@ async function submitPermit(e) {
             return;
         }
         const sub = currentSubPermits.find(x => x.id == subTypeId);
+        
+        // Validasi jam untuk Terlambat dan Pulang Cepat
+        const isTimeRequired = sub && (sub.name.toLowerCase().includes('terlambat') || sub.name.toLowerCase().includes('pulang cepat'));
+        if (isTimeRequired && !permitTime) {
+            alertDiv.textContent = `Jam wajib diisi untuk permohonan '${sub.name}'.`;
+            alertDiv.classList.remove('d-none');
+            return;
+        }
+
         const requiresAttachment = (pt && pt.requires_attachment) || (sub && parseInt(sub.requires_attachment) === 1);
         if (requiresAttachment && fileInput.files.length === 0) {
             const label = (sub && sub.attachment_label) ? sub.attachment_label : 'Dokumen Lampiran';
@@ -273,6 +324,9 @@ async function submitPermit(e) {
     formData.append('start_date', document.getElementById('start_date').value);
     formData.append('end_date', document.getElementById('end_date').value);
     formData.append('description', document.getElementById('description').value);
+    if (permitTime) {
+        formData.append('permit_time', permitTime);
+    }
     if (fileInput.files.length > 0) {
         formData.append('attachment', fileInput.files[0]);
     }
@@ -294,6 +348,8 @@ async function submitPermit(e) {
             document.getElementById('newPermitForm').reset();
             document.getElementById('permit_sub_type_id').disabled = true;
             document.getElementById('subTypeDetailHint').textContent = '';
+            const tc = document.getElementById('permitTimeContainer');
+            if (tc) tc.classList.add('d-none');
             loadMyPermits();
             loadMyLeaveBalance();
         } else {

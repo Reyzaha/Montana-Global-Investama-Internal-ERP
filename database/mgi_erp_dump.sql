@@ -874,6 +874,7 @@ CREATE TABLE `permits` (
   `permit_sub_type_id` int(11) DEFAULT NULL,
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
+  `permit_time` time DEFAULT NULL,
   `description` text NOT NULL,
   `status` enum('pending_hrga','pending_pm','approved','rejected') DEFAULT 'pending_hrga',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -884,7 +885,7 @@ CREATE TABLE `permits` (
   KEY `idx_permits_sub_type` (`permit_sub_type_id`),
   CONSTRAINT `fk_permits_permit_type_id` FOREIGN KEY (`permit_type_id`) REFERENCES `permit_types` (`id`),
   CONSTRAINT `fk_permits_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -893,6 +894,7 @@ CREATE TABLE `permits` (
 
 LOCK TABLES `permits` WRITE;
 /*!40000 ALTER TABLE `permits` DISABLE KEYS */;
+INSERT INTO `permits` VALUES (2,2,3,18,'2026-09-15','2026-09-15',NULL,'Cuti tahunan acara keluarga','approved','2026-09-29 02:50:43','2026-09-29 02:50:43');
 /*!40000 ALTER TABLE `permits` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1176,4 +1178,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  9:50:35
+-- Dump completed on 2026-09-29 10:05:06
