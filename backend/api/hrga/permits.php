@@ -176,13 +176,13 @@ if ($method === 'GET') {
             }
         }
 
-        // Jika pengajuan cuti tahunan, validasi kuota tersisa
-        if (strtolower($permitType['code']) === 'cuti') {
+        // Jika pengajuan cuti tahunan, validasi kuota tersisa (Cuti Khusus tidak memotong kuota)
+        if (isQuotaDeductiblePermitType($pdo, (int)$permit_type_id, $permit_sub_type_id)) {
             $year = (int)date('Y', strtotime($start_date));
             $balance = getOrCreateLeaveBalance($pdo, (int)$user['id'], (int)$permitType['id'], $year);
 
             if ($durationDays > $balance['remaining_days']) {
-                sendError("Sisa kuota cuti Anda untuk tahun {$year} adalah {$balance['remaining_days']} hari. Anda mengajukan {$durationDays} hari.", 400, [
+                sendError("Sisa kuota cuti tahunan Anda untuk tahun {$year} adalah {$balance['remaining_days']} hari. Anda mengajukan {$durationDays} hari.", 400, [
                     'remaining_days' => $balance['remaining_days'],
                     'requested_days' => $durationDays
                 ]);

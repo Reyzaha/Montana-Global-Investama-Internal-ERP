@@ -137,12 +137,33 @@
               </select>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Sub-Jenis Izin / Cuti <span class="text-danger">*</span></label>
+            <div class="mb-3" id="subTypeContainer">
+              <label class="form-label fw-semibold" id="subTypeLabel">Sub-Jenis Izin / Cuti <span class="text-danger">*</span></label>
               <select class="form-select" id="permit_sub_type_id" required disabled>
                 <option value="">-- Pilih Kategori Utama Dahulu --</option>
               </select>
               <div class="form-text small text-muted" id="subTypeDetailHint"></div>
+            </div>
+
+            <!-- Khusus Kategori Sakit: Tanpa jenis sakit rumit, opsi Surat Dokter vs Tanpa Surat Dokter -->
+            <div class="mb-3 d-none" id="sakitConditionContainer">
+              <label class="form-label fw-semibold">Keterangan Sakit <span class="text-danger">*</span></label>
+              <div class="p-3 border rounded bg-light">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="radio" name="sakit_condition" id="sakitDenganSurat" value="dengan_surat" checked onchange="handleSakitConditionChange()">
+                  <label class="form-check-label fw-medium" for="sakitDenganSurat">
+                    <i class="bi bi-file-earmark-medical text-primary me-1"></i> Sakit dengan Surat Dokter <span class="badge bg-danger ms-1">Wajib Surat Dokter</span>
+                  </label>
+                  <div class="form-text small text-muted ms-4">Melampirkan bukti surat keterangan istirahat/sakit dari dokter/klinik.</div>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="sakit_condition" id="sakitTanpaSurat" value="tanpa_surat" onchange="handleSakitConditionChange()">
+                  <label class="form-check-label fw-medium" for="sakitTanpaSurat">
+                    <i class="bi bi-emoji-frown text-warning me-1"></i> Sakit tanpa Surat Dokter <span class="badge bg-secondary ms-1">Tanpa Surat</span>
+                  </label>
+                  <div class="form-text small text-muted ms-4">Sakit ringan (istirahat mandiri di rumah tanpa surat dokter).</div>
+                </div>
+              </div>
             </div>
             
             <div class="row">
@@ -162,9 +183,9 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-semibold">Attachment <span id="attachmentRequiredLabel" class="text-danger d-none">*</span></label>
+              <label class="form-label fw-semibold" id="attachmentMainLabel">Upload Bukti Lampiran <span id="attachmentRequiredLabel" class="text-danger d-none">*</span></label>
               <input type="file" class="form-control" id="attachment" accept=".jpg,.png,.pdf">
-              <div class="form-text small text-muted">Max 5MB. JPG, PNG, PDF only.</div>
+              <div class="form-text small text-muted" id="attachmentHelpText">Maks. 5MB. Format JPG, PNG, atau PDF.</div>
             </div>
           </div>
           <div class="modal-footer">

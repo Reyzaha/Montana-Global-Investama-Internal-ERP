@@ -1,6 +1,6 @@
 -- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
 --
--- Host: 127.0.0.1    Database: mgi_erp
+-- Host: localhost    Database: mgi_erp
 -- ------------------------------------------------------
 -- Server version	10.4.32-MariaDB
 
@@ -468,7 +468,7 @@ CREATE TABLE `leave_balances` (
   KEY `fk_lb_permit_type_id` (`permit_type_id`),
   CONSTRAINT `fk_lb_permit_type_id` FOREIGN KEY (`permit_type_id`) REFERENCES `permit_types` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_lb_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -477,6 +477,7 @@ CREATE TABLE `leave_balances` (
 
 LOCK TABLES `leave_balances` WRITE;
 /*!40000 ALTER TABLE `leave_balances` DISABLE KEYS */;
+INSERT INTO `leave_balances` VALUES (1,2,3,2026,4.0,0.0,0.0,'2026-09-29 02:45:17','2026-09-29 02:45:17');
 /*!40000 ALTER TABLE `leave_balances` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -815,7 +816,7 @@ CREATE TABLE `permit_sub_types` (
   PRIMARY KEY (`id`),
   KEY `idx_sub_category` (`category_id`),
   KEY `idx_sub_active` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -824,7 +825,7 @@ CREATE TABLE `permit_sub_types` (
 
 LOCK TABLES `permit_sub_types` WRITE;
 /*!40000 ALTER TABLE `permit_sub_types` DISABLE KEYS */;
-INSERT INTO `permit_sub_types` VALUES (13,1,'Terlambat',NULL,0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(14,1,'Pulang Cepat',NULL,0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(15,1,'Dinas',NULL,0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(16,1,'Izin Tidak Masuk Kerja',NULL,0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(17,2,'Sakit','Pengajuan sakit (dengan surat dokter)',1,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(18,3,'Cuti Tahunan',NULL,0,NULL,12.0,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(19,3,'Istri Melahirkan',NULL,0,NULL,2.0,'per_event',0.0,'male',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(20,3,'Cuti Melahirkan',NULL,1,'Surat HPL / Keterangan Dokter Kandungan',90.0,'per_event',0.0,'female',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(21,3,'Kematian',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(22,3,'Sunatan',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(23,3,'Pernikahan Karyawan',NULL,0,NULL,3.0,'lifetime',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24'),(24,3,'Pernikahan Anak',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-23 15:32:24');
+INSERT INTO `permit_sub_types` VALUES (13,1,'Terlambat','Izin datang terlambat ke kantor',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(14,1,'Pulang Cepat','Izin pulang lebih cepat dari jam kerja resmi',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(15,1,'Dinas','Tugas / perjalanan dinas kantor di luar area kerja',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(16,1,'Izin Tidak Masuk Kerja',NULL,0,NULL,NULL,'per_year',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(17,2,'Sakit','Pengajuan sakit (dengan surat dokter)',1,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(18,3,'Cuti Tahunan','Hak cuti tahunan reguler karyawan (memotong kuota cuti tahunan)',0,NULL,12.0,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(19,3,'Istri Melahirkan',NULL,0,NULL,2.0,'per_event',0.0,'male',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(20,3,'Cuti Melahirkan',NULL,1,'Surat HPL / Keterangan Dokter Kandungan',90.0,'per_event',0.0,'female',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(21,3,'Kematian',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(22,3,'Sunatan',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(23,3,'Pernikahan Karyawan',NULL,0,NULL,3.0,'lifetime',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(24,3,'Pernikahan Anak',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(25,2,'Sakit dengan Surat Dokter','Pengajuan sakit dengan melampirkan surat dokter resmi',1,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30'),(26,2,'Sakit tanpa Surat','Pengajuan sakit ringan tanpa surat keterangan dokter',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30'),(27,3,'Cuti Khusus','Cuti khusus berbayar sesuai ketentuan (melahirkan, pernikahan, kedukaan, dll)',0,NULL,NULL,'per_event',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30');
 /*!40000 ALTER TABLE `permit_sub_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -883,7 +884,7 @@ CREATE TABLE `permits` (
   KEY `idx_permits_sub_type` (`permit_sub_type_id`),
   CONSTRAINT `fk_permits_permit_type_id` FOREIGN KEY (`permit_type_id`) REFERENCES `permit_types` (`id`),
   CONSTRAINT `fk_permits_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1175,4 +1176,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  9:31:59
+-- Dump completed on 2026-09-29  9:50:35

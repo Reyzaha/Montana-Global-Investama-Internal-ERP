@@ -121,12 +121,16 @@
                 <div class="card-body">
                   <div class="d-flex align-items-center justify-content-between">
                     <div>
-                      <div class="text-muted small fw-semibold text-uppercase">System Health</div>
-                      <h5 class="fw-bold text-primary mt-1 mb-0">Operational</h5>
+                      <div class="text-muted small fw-semibold text-uppercase">Jatah Cuti</div>
+                      <h4 class="fw-bold text-primary mt-1 mb-0"><span id="leaveRemainingText">12</span> <small class="fs-6 fw-normal text-muted">Hari</small></h4>
                     </div>
-                    <div class="rounded-circle bg-primary-subtle p-3 text-primary">
-                      <i class="bi bi-hdd-network fs-4"></i>
-                    </div>
+                    <a href="/frontend/pages/user/leave-balance.html" class="rounded-circle bg-primary-subtle p-3 text-primary text-decoration-none" title="Lihat Saldo Cuti">
+                      <i class="bi bi-calendar2-check fs-4"></i>
+                    </a>
+                  </div>
+                  <div class="small text-muted mt-2 d-flex justify-content-between align-items-center">
+                    <span id="leaveDetailText">Sisa cuti tahunan</span>
+                    <a href="/frontend/pages/user/leave-balance.html" class="small fw-semibold text-decoration-none">Detail &raquo;</a>
                   </div>
                 </div>
               </div>
@@ -250,6 +254,18 @@
         document.getElementById('attendanceStatusText').textContent = d.attendance_status;
         document.getElementById('permitCountText').textContent = d.pending_permits;
         document.getElementById('notificationCountText').textContent = d.unread_notifications;
+
+        // Render leave balance (Jatah Cuti)
+        if (d.leave_balance) {
+          const lb = d.leave_balance;
+          const rem = parseFloat(lb.remaining_days) || 0;
+          const used = parseFloat(lb.used_days) || 0;
+          const quota = (parseFloat(lb.quota_days) || 0) + (parseFloat(lb.carried_over_days) || 0);
+          const remEl = document.getElementById('leaveRemainingText');
+          const detEl = document.getElementById('leaveDetailText');
+          if (remEl) remEl.textContent = rem;
+          if (detEl) detEl.textContent = `Terpakai: ${used} | Kuota: ${quota} Hari`;
+        }
 
         // Render recent activities
         const list = document.getElementById('recentActivityList');

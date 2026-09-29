@@ -1,12 +1,13 @@
 let currentUser = null;
 let currentAttendanceData = [];
 let employeesList = [];
+let currentPeriod = { startDate: '', endDate: '' };
 
 document.addEventListener('DOMContentLoaded', async () => {
     currentUser = await checkAuth();
     if (!currentUser) return;
     
-    // Only HRGA and Admin allowed
+    // Only HRGA (2) and Admin (7) allowed
     if (currentUser.role_id !== 2 && currentUser.role_id !== 7) {
         window.location.href = '/frontend/dashboard.html';
         return;
@@ -18,17 +19,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFilters();
     await loadAllAttendance();
 
-    document.getElementById('btnApplyFilter').addEventListener('click', applyLocalFilter);
-    document.getElementById('filterMonth').addEventListener('change', loadAllAttendance);
-    document.getElementById('filterYear').addEventListener('change', loadAllAttendance);
+    // Event Listeners
+    document.getElementById('btnApplyFilter').addEventListener('click', () => loadAllAttendance());
+    document.getElementById('filterStartDate').addEventListener('change', updatePeriodDisplay);
+    document.getElementById('filterEndDate').addEventListener('change', updatePeriodDisplay);
+    document.getElementById('filterMonth').addEventListener('change', onMonthYearChange);
+    document.getElementById('filterYear').addEventListener('change', onMonthYearChange);
     document.getElementById('filterEmployee').addEventListener('change', applyLocalFilter);
     document.getElementById('filterStatus').addEventListener('change', applyLocalFilter);
     document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
+    document.getElementById('btnExportCsv').addEventListener('click', exportCsv);
 });
 
 function initFilters() {
     const monthSelect = document.getElementById('filterMonth');
     const yearSelect = document.getElementById('filterYear');
+    const startDateInput = document.getElementById('filterStartDate');
+    const endDateInput = document.getElementById('filterEndDate');
     
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
@@ -48,23 +55,68 @@ function initFilters() {
     yearSelect.innerHTML = '';
     yearSelect.appendChild(new Option(currentYear, currentYear));
     yearSelect.appendChild(new Option(currentYear - 1, currentYear - 1));
+
+    // Set initial date range to entire current month
+    syncDatesFromMonthYear();
+}
+
+function syncDatesFromMonthYear() {
+    const month = document.getElementById('filterMonth').value;
+    const year = document.getElementById('filterYear').value;
+    
+    const startDate = `${year}-${month}-01`;
+    // Last day of month
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const endDate = `${year}-${month}-${lastDay.toString().padStart(2, '0')}`;
+
+    document.getElementById('filterStartDate').value = startDate;
+    document.getElementById('filterEndDate').value = endDate;
+
+    updatePeriodDisplay();
+}
+
+function onMonthYearChange() {
+    syncDatesFromMonthYear();
+    loadAllAttendance();
+}
+
+function updatePeriodDisplay() {
+    const s = document.getElementById('filterStartDate').value;
+    const e = document.getElementById('filterEndDate').value;
+    const display = document.getElementById('filterPeriodDisplay');
+    
+    if (s && e) {
+        display.textContent = `Periode: ${formatDateIndo(s)} s/d ${formatDateIndo(e)}`;
+    } else {
+        display.textContent = `Periode: Semua Data`;
+    }
 }
 
 async function loadAllAttendance() {
     const tbody = document.getElementById('allAttendanceBody');
-    const month = document.getElementById('filterMonth').value;
-    const year = document.getElementById('filterYear').value;
+    const startDate = document.getElementById('filterStartDate').value;
+    const endDate = document.getElementById('filterEndDate').value;
 
     tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Memuat data kehadiran...</td></tr>`;
     
     try {
-        const res = await apiGet(`/backend/api/attendance/all-attendance.php?month=${month}&year=${year}`);
+        let url = `/backend/api/attendance/all-attendance.php`;
+        if (startDate && endDate) {
+            url += `?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`;
+        } else {
+            const m = document.getElementById('filterMonth').value;
+            const y = document.getElementById('filterYear').value;
+            url += `?month=${m}&year=${y}`;
+        }
+
+        const res = await apiGet(url);
         if (res.success) {
-            // Handle both structure: res.data as array or res.data.attendances
             if (Array.isArray(res.data)) {
                 currentAttendanceData = res.data;
             } else if (res.data && res.data.attendances) {
                 currentAttendanceData = res.data.attendances;
+                currentPeriod.startDate = res.data.start_date || startDate;
+                currentPeriod.endDate = res.data.end_date || endDate;
                 if (res.data.employees) {
                     employeesList = res.data.employees;
                     populateEmployeeDropdown(employeesList);
@@ -73,6 +125,7 @@ async function loadAllAttendance() {
                 currentAttendanceData = [];
             }
 
+            updatePeriodDisplay();
             updateMetrics(currentAttendanceData);
             applyLocalFilter();
         } else {
@@ -102,30 +155,34 @@ function updateMetrics(data) {
     let totalHadir = 0;
     let onTime = 0;
     let late = 0;
+    let permitCount = 0;
     let absent = 0;
 
     data.forEach(item => {
-        if (item.status === 'on_time') {
+        const st = (item.status || '').toLowerCase();
+        if (st === 'on_time') {
             totalHadir++;
             onTime++;
-        } else if (item.status === 'late') {
+        } else if (st === 'late') {
             totalHadir++;
             late++;
-        } else if (item.status === 'absent') {
+        } else if (['cuti', 'izin', 'sakit'].includes(st) || item.has_approved_permit) {
+            permitCount++;
+        } else if (st === 'absent') {
             absent++;
         }
     });
 
-    const totalLogs = totalHadir + absent;
     const onTimePct = totalHadir > 0 ? Math.round((onTime / totalHadir) * 100) : 0;
     const latePct = totalHadir > 0 ? Math.round((late / totalHadir) * 100) : 0;
 
     document.getElementById('cardTotalHadir').textContent = totalHadir;
-    document.getElementById('cardTotalHadirSub').textContent = `Dari ${totalLogs} total catatan absensi`;
+    document.getElementById('cardTotalHadirSub').textContent = `Dari ${data.length} total baris log`;
     document.getElementById('cardOnTime').textContent = onTime;
     document.getElementById('cardOnTimePercent').textContent = `${onTimePct}% dari kehadiran`;
     document.getElementById('cardLate').textContent = late;
     document.getElementById('cardLatePercent').textContent = `${latePct}% dari kehadiran`;
+    document.getElementById('cardPermit').textContent = permitCount;
     document.getElementById('cardAbsent').textContent = absent;
 }
 
@@ -141,7 +198,19 @@ function applyLocalFilter() {
     }
 
     if (selectedStatus) {
-        filtered = filtered.filter(item => item.status === selectedStatus);
+        filtered = filtered.filter(item => {
+            const st = (item.status || '').toLowerCase();
+            if (selectedStatus === 'cuti') {
+                return st === 'cuti' || (item.has_approved_permit && item.permit_category === 'cuti');
+            }
+            if (selectedStatus === 'izin') {
+                return st === 'izin' || (item.has_approved_permit && item.permit_category === 'izin');
+            }
+            if (selectedStatus === 'sakit') {
+                return st === 'sakit' || (item.has_approved_permit && item.permit_category === 'sakit');
+            }
+            return st === selectedStatus;
+        });
     }
 
     if (filtered.length === 0) {
@@ -152,42 +221,76 @@ function applyLocalFilter() {
     tbody.innerHTML = '';
     filtered.forEach(item => {
         const tr = document.createElement('tr');
+        const st = (item.status || '').toLowerCase();
         
         let badgeClass = 'bg-secondary';
-        let statusText = 'Pending';
-        let keterangan = '-';
+        let statusText = 'PENDING';
+        let keteranganHtml = '-';
 
-        if (item.status === 'on_time') {
+        if (st === 'on_time') {
             badgeClass = 'bg-success';
             statusText = 'TEPAT WAKTU';
-            keterangan = '<span class="text-success small fw-semibold"><i class="bi bi-check2-circle me-1"></i>Hadir Tepat Waktu</span>';
-        } else if (item.status === 'late') {
+            keteranganHtml = '<span class="text-success small fw-semibold"><i class="bi bi-check2-circle me-1"></i>Hadir Tepat Waktu</span>';
+        } else if (st === 'late') {
             badgeClass = 'bg-warning text-dark';
             statusText = 'TERLAMBAT';
-            keterangan = '<span class="text-warning-emphasis small fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Terlambat Masuk</span>';
-        } else if (item.status === 'absent') {
+            keteranganHtml = '<span class="text-warning-emphasis small fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Terlambat Masuk</span>';
+        } else if (st === 'cuti') {
+            badgeClass = 'bg-primary';
+            statusText = 'CUTI';
+        } else if (st === 'izin') {
+            badgeClass = 'bg-info text-dark';
+            statusText = 'IZIN';
+        } else if (st === 'sakit') {
+            badgeClass = 'bg-danger-subtle text-danger border border-danger-subtle';
+            statusText = 'SAKIT';
+        } else if (st === 'absent') {
             badgeClass = 'bg-danger';
             statusText = 'ABSEN';
-            keterangan = '<span class="text-danger small fw-semibold"><i class="bi bi-x-circle me-1"></i>Tidak Masuk</span>';
+            keteranganHtml = '<span class="text-danger small fw-semibold"><i class="bi bi-x-circle me-1"></i>Tidak Masuk</span>';
+        }
+
+        // Jika terdapat pengajuan Izin/Cuti/Sakit yang disetujui OM & HR
+        if (item.has_approved_permit) {
+            const catName = item.permit_category_name || (st === 'cuti' ? 'Cuti' : (st === 'sakit' ? 'Sakit' : 'Izin'));
+            const subName = item.permit_sub_type_name || catName;
+            const desc = item.permit_description ? `<div class="text-muted small fst-italic mt-1">"${escapeHtml(item.permit_description)}"</div>` : '';
+            
+            keteranganHtml = `
+                <div class="text-start">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold mb-1">
+                        <i class="bi bi-patch-check-fill me-1"></i>${escapeHtml(catName)}: ${escapeHtml(subName)}
+                    </span>
+                    <div class="small text-success fw-bold">
+                        <i class="bi bi-shield-check me-1"></i>Disetujui OM & HR
+                    </div>
+                    ${desc}
+                </div>
+            `;
+
+            // Annotate badge status if it was attendance with approved permit
+            if (st === 'late' && subName.toLowerCase().includes('terlambat')) {
+                statusText = 'TERLAMBAT (DISAHKAN)';
+            }
         }
 
         const formattedDate = formatDateIndo(item.date);
         const employeeDisplay = item.employee_name 
-            ? `<div><span class="fw-semibold text-dark">${item.employee_name}</span><div class="text-muted small">${item.employee_email}</div></div>`
-            : `<span>${item.employee_email}</span>`;
+            ? `<div><span class="fw-semibold text-dark">${escapeHtml(item.employee_name)}</span><div class="text-muted small">${escapeHtml(item.employee_email)}</div></div>`
+            : `<span>${escapeHtml(item.employee_email)}</span>`;
 
         const positionDisplay = item.employee_position || item.role_name || '-';
 
         tr.innerHTML = `
             <td class="ps-4 fw-semibold text-nowrap">${formattedDate}</td>
             <td>${employeeDisplay}</td>
-            <td><span class="badge bg-light text-dark border">${positionDisplay}</span></td>
+            <td><span class="badge bg-light text-dark border">${escapeHtml(positionDisplay)}</span></td>
             <td><span class="fw-medium text-dark">${item.check_in ? item.check_in : '-'}</span></td>
             <td><span class="text-muted">${item.break_start ? item.break_start : '-'}</span></td>
             <td><span class="text-muted">${item.break_end ? item.break_end : '-'}</span></td>
             <td><span class="fw-medium text-dark">${item.check_out ? item.check_out : '-'}</span></td>
             <td><span class="badge ${badgeClass}">${statusText}</span></td>
-            <td class="pe-4 text-end">${keterangan}</td>
+            <td class="pe-4 text-start">${keteranganHtml}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -210,6 +313,136 @@ function formatDateIndo(dateStr) {
     return dateStr;
 }
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.toString().replace(/[&<>"']/g, m => map[m]);
+}
+
+// ==========================================================
+// EXPORT EXCEL / CSV REKAP KEHADIRAN & CATATAN PERMIT
+// ==========================================================
+function exportCsv() {
+    if (!currentAttendanceData || currentAttendanceData.length === 0) {
+        showToast('Tidak ada data absensi untuk diexport.', 'warning');
+        return;
+    }
+
+    const filterEmpSelect = document.getElementById('filterEmployee');
+    const selectedUserId = filterEmpSelect.value;
+    const selectedEmpText = filterEmpSelect.options[filterEmpSelect.selectedIndex].text;
+
+    let exportData = currentAttendanceData;
+    if (selectedUserId) {
+        exportData = exportData.filter(x => x.user_id == selectedUserId);
+    }
+
+    if (exportData.length === 0) {
+        showToast('Tidak ada data yang sesuai untuk diexport.', 'warning');
+        return;
+    }
+
+    const startDate = document.getElementById('filterStartDate').value || currentPeriod.startDate || '';
+    const endDate = document.getElementById('filterEndDate').value || currentPeriod.endDate || '';
+
+    // CSV Headers
+    const headers = [
+        'No',
+        'Tanggal',
+        'Hari',
+        'Karyawan',
+        'Email',
+        'Jabatan / Posisi',
+        'Jam Masuk',
+        'Istirahat Keluar',
+        'Istirahat Masuk',
+        'Jam Pulang',
+        'Status Kehadiran',
+        'Keterangan & Catatan Permit (Disetujui OM & HR)'
+    ];
+
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+    const rows = exportData.map((item, idx) => {
+        let dayName = '-';
+        if (item.date) {
+            const p = item.date.split('-');
+            if (p.length === 3) {
+                const dt = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+                dayName = days[dt.getDay()] || '-';
+            }
+        }
+
+        let statusText = 'PENDING';
+        const st = (item.status || '').toLowerCase();
+        if (st === 'on_time') statusText = 'TEPAT WAKTU';
+        else if (st === 'late') statusText = 'TERLAMBAT';
+        else if (st === 'cuti') statusText = 'CUTI';
+        else if (st === 'izin') statusText = 'IZIN';
+        else if (st === 'sakit') statusText = 'SAKIT';
+        else if (st === 'absent') statusText = 'ABSEN';
+
+        let ket = item.notes || '-';
+        if (item.has_approved_permit) {
+            const cat = item.permit_category_name || '';
+            const sub = item.permit_sub_type_name || '';
+            const desc = item.permit_description ? ` (Alasan: ${item.permit_description})` : '';
+            ket = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
+        }
+
+        return [
+            idx + 1,
+            item.date || '-',
+            dayName,
+            item.employee_name || '-',
+            item.employee_email || '-',
+            item.employee_position || item.role_name || '-',
+            item.check_in || '-',
+            item.break_start || '-',
+            item.break_end || '-',
+            item.check_out || '-',
+            statusText,
+            ket
+        ];
+    });
+
+    // Helper to escape CSV cell
+    const csvContent = [headers, ...rows].map(row => {
+        return row.map(cell => {
+            const cellStr = (cell === null || cell === undefined) ? '' : String(cell);
+            // Escape double quotes
+            return `"${cellStr.replace(/"/g, '""')}"`;
+        }).join(',');
+    }).join('\r\n');
+
+    // Add UTF-8 BOM so Excel opens indonesian characters properly
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    let filename = `Rekap_Absensi_MGI_${startDate}_sd_${endDate}`;
+    if (selectedUserId) {
+        const cleanName = selectedEmpText.split('(')[0].trim().replace(/[^a-zA-Z0-9]/g, '_');
+        filename += `_${cleanName}`;
+    }
+    filename += '.csv';
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('File CSV/Excel rekap absensi berhasil diunduh.', 'success');
+}
+
 // ==========================================================
 // EXPORT PDF REKAP KEHADIRAN (PER USER & PER TANGGAL)
 // ==========================================================
@@ -225,9 +458,8 @@ function exportPdf() {
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 14;
 
-    const monthSelect = document.getElementById('filterMonth');
-    const monthText = monthSelect.options[monthSelect.selectedIndex].text;
-    const year = document.getElementById('filterYear').value;
+    const startDate = document.getElementById('filterStartDate').value || currentPeriod.startDate || '';
+    const endDate = document.getElementById('filterEndDate').value || currentPeriod.endDate || '';
 
     const filterEmpSelect = document.getElementById('filterEmployee');
     const selectedUserId = filterEmpSelect.value;
@@ -258,18 +490,22 @@ function exportPdf() {
                 total_attended: 0,
                 on_time: 0,
                 late: 0,
+                permits: 0,
                 absent: 0
             };
         }
         usersMap[key].records.push(item);
 
-        if (item.status === 'on_time') {
+        const st = (item.status || '').toLowerCase();
+        if (st === 'on_time') {
             usersMap[key].total_attended++;
             usersMap[key].on_time++;
-        } else if (item.status === 'late') {
+        } else if (st === 'late') {
             usersMap[key].total_attended++;
             usersMap[key].late++;
-        } else if (item.status === 'absent') {
+        } else if (['cuti', 'izin', 'sakit'].includes(st) || item.has_approved_permit) {
+            usersMap[key].permits++;
+        } else if (st === 'absent') {
             usersMap[key].absent++;
         }
     });
@@ -280,18 +516,19 @@ function exportPdf() {
     let grandAttended = 0;
     let grandOnTime = 0;
     let grandLate = 0;
+    let grandPermits = 0;
     let grandAbsent = 0;
 
     userList.forEach(u => {
         grandAttended += u.total_attended;
         grandOnTime += u.on_time;
         grandLate += u.late;
+        grandPermits += u.permits;
         grandAbsent += u.absent;
         // Sort individual records ascending by date
         u.records.sort((a, b) => (a.date > b.date ? 1 : -1));
     });
 
-    const grandLogs = grandAttended + grandAbsent;
     const grandOnTimePct = grandAttended > 0 ? Math.round((grandOnTime / grandAttended) * 100) : 0;
     const grandLatePct = grandAttended > 0 ? Math.round((grandLate / grandAttended) * 100) : 0;
 
@@ -336,7 +573,7 @@ function exportPdf() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
-    doc.text(`Periode: ${monthText} ${year}`, pageWidth / 2, currentY, { align: "center" });
+    doc.text(`Periode: ${formatDateIndo(startDate)} s/d ${formatDateIndo(endDate)}`, pageWidth / 2, currentY, { align: "center" });
 
     currentY += 4.5;
     doc.setFontSize(8);
@@ -348,56 +585,76 @@ function exportPdf() {
     currentY += 6;
 
     // ----------------------------------------------------
-    // 3. STATISTIK RINGKASAN GLOBAL (EXECUTIVE SUMMARY)
+    // 3. STATISTIK RINGKASAN (KPI METRIC BOXES)
     // ----------------------------------------------------
-    const summaryBoxes = [
-        ['Total Karyawan', `${userList.length} Orang`],
-        ['Total Hadir', `${grandAttended} Hari`],
-        ['Tepat Waktu', `${grandOnTime} (${grandOnTimePct}%)`],
-        ['Total Terlambat', `${grandLate} (${grandLatePct}%)`],
-        ['Total Absen', `${grandAbsent} Hari`]
-    ];
+    const boxWidth = (pageWidth - (margin * 2) - 12) / 4;
+    const boxHeight = 16;
 
-    doc.autoTable({
-        startY: currentY,
-        head: [summaryBoxes.map(b => b[0])],
-        body: [summaryBoxes.map(b => b[1])],
-        theme: 'grid',
-        styles: {
-            fontSize: 8.5,
-            halign: 'center',
-            cellPadding: 2.5
-        },
-        headStyles: {
-            fillColor: [241, 245, 249],
-            textColor: [51, 65, 85],
-            fontStyle: 'bold',
-            lineWidth: 0.2,
-            lineColor: [203, 213, 225]
-        },
-        bodyStyles: {
-            fillColor: [255, 255, 255],
-            textColor: [15, 23, 42],
-            fontStyle: 'bold',
-            lineWidth: 0.2,
-            lineColor: [203, 213, 225]
-        }
-    });
+    // Box 1: Total Hadir
+    doc.setFillColor(239, 246, 255); // Blue tint
+    doc.setDrawColor(191, 219, 254);
+    doc.roundedRect(margin, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 64, 175);
+    doc.text("TOTAL HADIR", margin + 4, currentY + 5);
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${grandAttended}`, margin + 4, currentY + 12);
 
-    currentY = doc.lastAutoTable.finalY + 6;
+    // Box 2: Tepat Waktu
+    const box2X = margin + boxWidth + 4;
+    doc.setFillColor(240, 253, 244); // Green tint
+    doc.setDrawColor(187, 247, 208);
+    doc.roundedRect(box2X, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(22, 101, 52);
+    doc.text("TEPAT WAKTU", box2X + 4, currentY + 5);
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${grandOnTime} (${grandOnTimePct}%)`, box2X + 4, currentY + 12);
+
+    // Box 3: Terlambat
+    const box3X = margin + (boxWidth * 2) + 8;
+    doc.setFillColor(254, 252, 232); // Yellow tint
+    doc.setDrawColor(254, 240, 138);
+    doc.roundedRect(box3X, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(161, 98, 7);
+    doc.text("TERLAMBAT", box3X + 4, currentY + 5);
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${grandLate} (${grandLatePct}%)`, box3X + 4, currentY + 12);
+
+    // Box 4: Izin/Cuti/Sakit Disetujui
+    const box4X = margin + (boxWidth * 3) + 12;
+    doc.setFillColor(243, 244, 246); // Gray/Info tint
+    doc.setDrawColor(229, 231, 235);
+    doc.roundedRect(box4X, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(75, 85, 99);
+    doc.text("IZIN/CUTI/SAKIT", box4X + 4, currentY + 5);
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${grandPermits} Hari`, box4X + 4, currentY + 12);
+
+    currentY += boxHeight + 8;
 
     // ----------------------------------------------------
-    // 4. TABEL REKAPITULASI RINGKASAN PER KARYAWAN
+    // 4. TABEL REKAPITULASI RINGKAS SEMUA PEGAWAI
     // ----------------------------------------------------
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(30, 41, 59);
-    doc.text("I. Tabel Ringkasan Kehadiran Seluruh Karyawan", margin, currentY);
+    doc.text("I. Ringkasan Kehadiran Seluruh Pegawai", margin, currentY);
 
-    currentY += 3;
+    currentY += 4;
 
-    const summaryTableBody = userList.map((u, idx) => {
-        const pct = u.total_attended > 0 ? Math.round((u.on_time / u.total_attended) * 100) + '%' : '0%';
+    const summaryTableData = userList.map((u, idx) => {
+        const uPct = u.total_attended > 0 ? Math.round((u.on_time / u.total_attended) * 100) : 0;
         return [
             idx + 1,
             u.name,
@@ -405,37 +662,42 @@ function exportPdf() {
             u.total_attended,
             u.on_time,
             u.late,
+            u.permits,
             u.absent,
-            pct
+            `${uPct}%`
         ];
     });
 
     doc.autoTable({
         startY: currentY,
-        head: [['No', 'Nama Karyawan', 'Divisi / Jabatan', 'Total Hadir', 'Tepat Waktu', 'Terlambat', 'Absen', '% Ketepatan']],
-        body: summaryTableBody,
+        head: [['No', 'Nama Pegawai', 'Jabatan', 'Total Hadir', 'On Time', 'Terlambat', 'Izin/Cuti', 'Absen', 'Disiplin']],
+        body: summaryTableData,
         theme: 'striped',
         styles: {
             fontSize: 8,
-            cellPadding: 2.2,
+            cellPadding: 2,
             lineColor: [226, 232, 240],
             lineWidth: 0.1
         },
         headStyles: {
-            fillColor: [30, 58, 138],
+            fillColor: [30, 58, 138], // Navy
             textColor: [255, 255, 255],
             fontStyle: 'bold',
             halign: 'left'
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 10 },
-            1: { cellWidth: 42, fontStyle: 'bold' },
-            2: { cellWidth: 38 },
-            3: { halign: 'center', cellWidth: 20 },
-            4: { halign: 'center', cellWidth: 22 },
-            5: { halign: 'center', cellWidth: 22 },
-            6: { halign: 'center', cellWidth: 18 },
-            7: { halign: 'center', cellWidth: 20 }
+            0: { halign: 'center', cellWidth: 8 },
+            1: { cellWidth: 42 },
+            2: { cellWidth: 32 },
+            3: { halign: 'center', cellWidth: 18 },
+            4: { halign: 'center', cellWidth: 16 },
+            5: { halign: 'center', cellWidth: 16 },
+            6: { halign: 'center', cellWidth: 16 },
+            7: { halign: 'center', cellWidth: 14 },
+            8: { halign: 'center', cellWidth: 18 }
+        },
+        alternateRowStyles: {
+            fillColor: [248, 250, 252]
         }
     });
 
@@ -444,7 +706,6 @@ function exportPdf() {
     // ----------------------------------------------------
     // 5. DETAIL KEHADIRAN RAPI PER USER DAN PER TANGGAL
     // ----------------------------------------------------
-    // Check if new page needed before starting detailed section
     if (currentY > pageHeight - 45) {
         doc.addPage();
         currentY = 16;
@@ -458,7 +719,6 @@ function exportPdf() {
     currentY += 4;
 
     userList.forEach((u, userIdx) => {
-        // Space check for employee header box + table preview
         if (currentY > pageHeight - 50) {
             doc.addPage();
             currentY = 16;
@@ -481,7 +741,7 @@ function exportPdf() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
         doc.setTextColor(71, 85, 105);
-        const userSummaryText = `Total Hadir: ${u.total_attended} Hari  |  Tepat Waktu: ${u.on_time} Hari  |  Total Terlambat: ${u.late} Hari  |  Absen: ${u.absent} Hari`;
+        const userSummaryText = `Total Hadir: ${u.total_attended} Hari  |  Tepat Waktu: ${u.on_time} Hari  |  Terlambat: ${u.late} Hari  |  Izin/Cuti/Sakit: ${u.permits} Hari  |  Absen: ${u.absent} Hari`;
         doc.text(userSummaryText, margin + 5, currentY + 8.8);
 
         currentY += 13;
@@ -489,13 +749,34 @@ function exportPdf() {
         // Daily Attendance Table for this Employee
         const detailRows = u.records.map((r, rIdx) => {
             let statusLabel = 'TEPAT WAKTU';
-            let keterangan = 'Tepat Waktu';
-            if (r.status === 'late') {
+            let keterangan = 'Hadir Tepat Waktu';
+            const st = (r.status || '').toLowerCase();
+
+            if (st === 'late') {
                 statusLabel = 'TERLAMBAT';
                 keterangan = 'Terlambat Masuk';
-            } else if (r.status === 'absent') {
+            } else if (st === 'cuti') {
+                statusLabel = 'CUTI';
+                keterangan = 'Cuti';
+            } else if (st === 'izin') {
+                statusLabel = 'IZIN';
+                keterangan = 'Izin';
+            } else if (st === 'sakit') {
+                statusLabel = 'SAKIT';
+                keterangan = 'Sakit';
+            } else if (st === 'absent') {
                 statusLabel = 'ABSEN';
                 keterangan = 'Tidak Masuk Kerja';
+            }
+
+            if (r.has_approved_permit) {
+                const cat = r.permit_category_name || '';
+                const sub = r.permit_sub_type_name || '';
+                const desc = r.permit_description ? ` - ${r.permit_description}` : '';
+                keterangan = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
+                if (st === 'late' && sub.toLowerCase().includes('terlambat')) {
+                    statusLabel = 'TERLAMBAT (SAH)';
+                }
             }
 
             return [
@@ -529,23 +810,24 @@ function exportPdf() {
             },
             columnStyles: {
                 0: { halign: 'center', cellWidth: 8 },
-                1: { cellWidth: 38 },
-                2: { halign: 'center', cellWidth: 20 },
-                3: { halign: 'center', cellWidth: 20 },
-                4: { halign: 'center', cellWidth: 20 },
-                5: { halign: 'center', cellWidth: 20 },
+                1: { cellWidth: 36 },
+                2: { halign: 'center', cellWidth: 18 },
+                3: { halign: 'center', cellWidth: 18 },
+                4: { halign: 'center', cellWidth: 18 },
+                5: { halign: 'center', cellWidth: 18 },
                 6: { halign: 'center', cellWidth: 24, fontStyle: 'bold' },
-                7: { cellWidth: 32 }
+                7: { cellWidth: 42 }
             },
             didParseCell: function(data) {
-                // Color status column
                 if (data.section === 'body' && data.column.index === 6) {
                     const text = data.cell.raw;
                     if (text === 'TEPAT WAKTU') {
                         data.cell.styles.textColor = [22, 101, 52]; // Dark green
-                    } else if (text === 'TERLAMBAT') {
+                    } else if (text.includes('TERLAMBAT')) {
                         data.cell.styles.textColor = [180, 83, 9]; // Dark yellow / amber
-                    } else if (text === 'ABSEN') {
+                    } else if (text === 'CUTI' || text === 'IZIN') {
+                        data.cell.styles.textColor = [30, 58, 138]; // Dark blue
+                    } else if (text === 'SAKIT' || text === 'ABSEN') {
                         data.cell.styles.textColor = [185, 28, 28]; // Dark red
                     }
                 }
@@ -611,8 +893,7 @@ function exportPdf() {
     }
 
     // Generate filename
-    const cleanMonth = monthText.replace(/\s+/g, '_');
-    let filename = `Rekap_Kehadiran_MGI_${cleanMonth}_${year}`;
+    let filename = `Rekap_Kehadiran_MGI_${startDate}_sd_${endDate}`;
     if (selectedUserId) {
         const cleanName = selectedEmpText.split('(')[0].trim().replace(/[^a-zA-Z0-9]/g, '_');
         filename += `_${cleanName}`;

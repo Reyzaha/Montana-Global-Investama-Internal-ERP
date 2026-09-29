@@ -21,32 +21,65 @@ let currentSubPermits = [];
 
 async function handleCategoryChange(e) {
     const categoryId = parseInt(e.target.value);
+    const subContainer = document.getElementById('subTypeContainer');
+    const sakitContainer = document.getElementById('sakitConditionContainer');
     const subSelect = document.getElementById('permit_sub_type_id');
+    const subLabel = document.getElementById('subTypeLabel');
     const hint = document.getElementById('subTypeDetailHint');
     const reqLabel = document.getElementById('attachmentRequiredLabel');
+    const attLabel = document.getElementById('attachmentMainLabel');
+    const attHelp = document.getElementById('attachmentHelpText');
 
-    subSelect.innerHTML = '<option value="">-- Pilih Sub-Jenis Izin --</option>';
+    subSelect.innerHTML = '<option value="">-- Pilih Jenis Pengajuan --</option>';
     hint.textContent = '';
     reqLabel.classList.add('d-none');
 
     if (!categoryId) {
         subSelect.disabled = true;
+        subContainer.classList.remove('d-none');
+        sakitContainer.classList.add('d-none');
         return;
     }
 
+    const pt = permitTypes.find(x => x.id === categoryId);
+    const isSakit = (pt && pt.code === 'sakit') || categoryId === 2;
+
+    if (isSakit) {
+        // Requirement 4: Sakit tidak perlu jenis sakit, hanya opsi surat dokter vs tanpa surat
+        subContainer.classList.add('d-none');
+        subSelect.removeAttribute('required');
+        sakitContainer.classList.remove('d-none');
+        handleSakitConditionChange();
+    } else {
+        subContainer.classList.remove('d-none');
+        subSelect.setAttribute('required', 'required');
+        sakitContainer.classList.add('d-none');
+        
+        if (attLabel) attLabel.innerHTML = 'Upload Bukti Lampiran <span id="attachmentRequiredLabel" class="text-danger d-none">*</span>';
+        if (attHelp) attHelp.textContent = 'Maks. 5MB. Format JPG, PNG, atau PDF.';
+
+        if (pt && pt.code === 'cuti') {
+            subLabel.innerHTML = 'Jenis Cuti <span class="text-danger">*</span>';
+        } else if (pt && pt.code === 'izin') {
+            subLabel.innerHTML = 'Jenis Izin <span class="text-danger">*</span>';
+        } else {
+            subLabel.innerHTML = 'Sub-Jenis Izin / Cuti <span class="text-danger">*</span>';
+        }
+    }
+
     subSelect.disabled = true;
-    subSelect.innerHTML = '<option value="">Memuat opsi sub-izin...</option>';
+    subSelect.innerHTML = '<option value="">Memuat opsi...</option>';
 
     try {
         const res = await apiGet(`/backend/api/hrga/permit-sub-types.php?category_id=${categoryId}&status=active`);
         if (res.success && res.data) {
             currentSubPermits = res.data;
-            subSelect.innerHTML = '<option value="">-- Pilih Sub-Jenis Izin --</option>';
+            subSelect.innerHTML = '<option value="">-- Pilih Jenis Pengajuan --</option>';
             currentSubPermits.forEach(st => {
                 const opt = document.createElement('option');
                 opt.value = st.id;
                 let text = st.name;
-                if (st.quota_days) text += ` (Maks. ${st.quota_days} hari)`;
+                if (st.quota_days) text += ` (Kuota: ${st.quota_days} hari)`;
                 opt.textContent = text;
                 subSelect.appendChild(opt);
             });
@@ -54,7 +87,24 @@ async function handleCategoryChange(e) {
         }
     } catch (err) {
         console.error("Gagal memuat sub-izin:", err);
-        subSelect.innerHTML = '<option value="">Gagal memuat sub-izin</option>';
+        subSelect.innerHTML = '<option value="">Gagal memuat opsi</option>';
+    }
+}
+
+function handleSakitConditionChange() {
+    const isDenganSurat = document.getElementById('sakitDenganSurat').checked;
+    const reqLabel = document.getElementById('attachmentRequiredLabel');
+    const attLabel = document.getElementById('attachmentMainLabel');
+    const attHelp = document.getElementById('attachmentHelpText');
+    
+    if (isDenganSurat) {
+        if (reqLabel) reqLabel.classList.remove('d-none');
+        if (attLabel) attLabel.innerHTML = 'Upload Bukti Surat Sakit <span id="attachmentRequiredLabel" class="text-danger">* (Wajib)</span>';
+        if (attHelp) attHelp.textContent = 'Wajib melampirkan Surat Keterangan Dokter dari RS / Klinik (Maks. 5MB, format JPG, PNG, PDF).';
+    } else {
+        if (reqLabel) reqLabel.classList.add('d-none');
+        if (attLabel) attLabel.innerHTML = 'Upload Bukti Surat Sakit <span class="text-muted fw-normal small">(Opsional)</span>';
+        if (attHelp) attHelp.textContent = 'Opsional: Dapat melampirkan foto resep obat atau keterangan dokter jika ada.';
     }
 }
 
@@ -70,7 +120,11 @@ function handleSubTypeChange(e) {
         return;
     }
 
-    if (parseInt(sub.requires_attachment) === 1) {
+    if (sub.name === 'Cuti Tahunan') {
+        hint.innerHTML = `<span class="text-primary"><i class="bi bi-info-circle me-1"></i>Pengajuan ini akan memotong sisa kuota cuti tahunan Anda.</span>`;
+    } else if (sub.name === 'Cuti Khusus') {
+        hint.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Cuti khusus berbayar resmi (tidak memotong saldo cuti tahunan).</span>`;
+    } else if (parseInt(sub.requires_attachment) === 1) {
         reqLabel.classList.remove('d-none');
         const label = sub.attachment_label || 'Surat Bukti / Dokumen Pendukung';
         hint.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Wajib lampiran: <strong>${label}</strong></span>`;
@@ -178,18 +232,37 @@ async function submitPermit(e) {
     alertDiv.classList.add('d-none');
     
     const typeId = parseInt(document.getElementById('permit_type_id').value);
-    const subTypeId = document.getElementById('permit_sub_type_id').value;
+    let subTypeId = document.getElementById('permit_sub_type_id').value;
     const pt = permitTypes.find(x => x.id === typeId);
-    const sub = currentSubPermits.find(x => x.id == subTypeId);
+    const isSakit = (pt && pt.code === 'sakit') || typeId === 2;
     const fileInput = document.getElementById('attachment');
     
-    // Check required attachment from category or sub-type
-    const requiresAttachment = (pt && pt.requires_attachment) || (sub && parseInt(sub.requires_attachment) === 1);
-    if (requiresAttachment && fileInput.files.length === 0) {
-        const label = (sub && sub.attachment_label) ? sub.attachment_label : 'Dokumen Lampiran';
-        alertDiv.textContent = `Lampiran berkas (${label}) wajib diunggah untuk jenis izin ini.`;
-        alertDiv.classList.remove('d-none');
-        return;
+    // Check Sakit condition or standard sub-type
+    if (isSakit) {
+        const isDenganSurat = document.getElementById('sakitDenganSurat').checked;
+        const targetSub = currentSubPermits.find(x => isDenganSurat ? x.name.includes('Surat Dokter') : x.name.includes('tanpa Surat'));
+        if (targetSub) {
+            subTypeId = targetSub.id;
+        }
+        if (isDenganSurat && fileInput.files.length === 0) {
+            alertDiv.textContent = 'Bukti Surat Keterangan Dokter wajib diunggah untuk pengajuan sakit dengan surat dokter.';
+            alertDiv.classList.remove('d-none');
+            return;
+        }
+    } else {
+        if (!subTypeId) {
+            alertDiv.textContent = 'Silakan pilih jenis pengajuan (sub-jenis) terlebih dahulu.';
+            alertDiv.classList.remove('d-none');
+            return;
+        }
+        const sub = currentSubPermits.find(x => x.id == subTypeId);
+        const requiresAttachment = (pt && pt.requires_attachment) || (sub && parseInt(sub.requires_attachment) === 1);
+        if (requiresAttachment && fileInput.files.length === 0) {
+            const label = (sub && sub.attachment_label) ? sub.attachment_label : 'Dokumen Lampiran';
+            alertDiv.textContent = `Lampiran berkas (${label}) wajib diunggah untuk jenis pengajuan ini.`;
+            alertDiv.classList.remove('d-none');
+            return;
+        }
     }
 
     const formData = new FormData();

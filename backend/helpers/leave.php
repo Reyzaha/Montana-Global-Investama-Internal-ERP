@@ -81,11 +81,23 @@ function calculatePermitDays(string $startDate, string $endDate): int {
 }
 
 /**
- * Check if permit type code is considered a quota deduction (e.g. 'cuti')
+ * Check if permit type and sub-type is considered a quota deduction (e.g. 'Cuti Tahunan')
+ * Cuti Khusus does not deduct from annual leave quota
  */
-function isQuotaDeductiblePermitType(PDO $pdo, int $permitTypeId): bool {
+function isQuotaDeductiblePermitType(PDO $pdo, int $permitTypeId, ?int $permitSubTypeId = null): bool {
     $stmt = $pdo->prepare("SELECT code FROM `permit_types` WHERE id = ? LIMIT 1");
     $stmt->execute([$permitTypeId]);
     $code = strtolower((string)$stmt->fetchColumn());
-    return ($code === 'cuti');
+    if ($code !== 'cuti') {
+        return false;
+    }
+    if ($permitSubTypeId) {
+        $stmtSub = $pdo->prepare("SELECT name FROM `permit_sub_types` WHERE id = ? LIMIT 1");
+        $stmtSub->execute([$permitSubTypeId]);
+        $subName = (string)$stmtSub->fetchColumn();
+        if (stripos($subName, 'khusus') !== false) {
+            return false;
+        }
+    }
+    return true;
 }

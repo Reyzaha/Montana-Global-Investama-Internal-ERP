@@ -67,12 +67,23 @@ try {
     ");
     $recentActivities = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 
+    require_once __DIR__ . '/../../helpers/leave.php';
+
+    // 5. Leave balance for logged in user
+    $leaveBalance = null;
+    $stmtCuti = $pdo->query("SELECT id, name FROM `permit_types` WHERE `code` = 'cuti' LIMIT 1");
+    $cutiType = $stmtCuti->fetch(PDO::FETCH_ASSOC);
+    if ($cutiType) {
+        $leaveBalance = getOrCreateLeaveBalance($pdo, $userId, (int)$cutiType['id'], (int)date('Y'));
+    }
+
     echo json_encode([
         'success' => true,
         'data' => [
             'attendance_status' => $attendanceStatus,
             'pending_permits' => $pendingPermits,
             'unread_notifications' => $unreadNotifications,
+            'leave_balance' => $leaveBalance,
             'recent_activities' => $recentActivities
         ]
     ]);

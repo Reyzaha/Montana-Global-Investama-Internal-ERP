@@ -72,8 +72,9 @@ try {
     $stmt = $pdo->prepare("UPDATE permits SET status = ? WHERE id = ?");
     $stmt->execute([$newStatus, $permitId]);
 
-    // Jika disetujui PM (Final Approved) dan jenis permit adalah Cuti, otomatis potong kuota cuti
-    if ($newStatus === 'approved' && isQuotaDeductiblePermitType($pdo, (int)$permit['permit_type_id'])) {
+    // Jika disetujui PM (Final Approved) dan jenis permit adalah Cuti Tahunan, otomatis potong kuota cuti
+    $subTypeId = !empty($permit['permit_sub_type_id']) ? (int)$permit['permit_sub_type_id'] : null;
+    if ($newStatus === 'approved' && isQuotaDeductiblePermitType($pdo, (int)$permit['permit_type_id'], $subTypeId)) {
         $days = calculatePermitDays($permit['start_date'], $permit['end_date']);
         $year = (int)date('Y', strtotime($permit['start_date']));
 
