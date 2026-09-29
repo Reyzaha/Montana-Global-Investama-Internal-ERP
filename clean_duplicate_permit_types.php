@@ -6,6 +6,35 @@ require_once __DIR__ . '/backend/config/database.php';
 $pdo = getDbConnection();
 echo "Running Cleanup: Deduplicate permit_types and normalize configuration...\n";
 
+// Discover available databases and ensure we operate on mgi_erp
+$databases = $pdo->query("SHOW DATABASES")->fetchAll(PDO::FETCH_COLUMN);
+echo "• Available databases on MySQL server: " . implode(', ', $databases) . "\n";
+
+if (in_array('mgi_erp', $databases)) {
+    echo "• Selecting database: 'mgi_erp'\n";
+    $pdo->exec("USE `mgi_erp`");
+} else {
+    foreach ($databases as $db) {
+        if (in_array($db, ['information_schema', 'mysql', 'performance_schema', 'sys'])) continue;
+        try {
+            $check = $pdo->query("SHOW TABLES FROM `{$db}` LIKE 'permit_types'")->fetchColumn();
+            if ($check) {
+                echo "• Found 'permit_types' in database: '{$db}'. Selecting it...\n";
+                $pdo->exec("USE `{$db}`");
+                break;
+            }
+        } catch (Exception $e) {}
+    }
+}
+
+$activeDb = $pdo->query("SELECT DATABASE()")->fetchColumn();
+echo "• Active Database: {$activeDb}\n";
+
+$hasTable = $pdo->query("SHOW TABLES LIKE 'permit_types'")->fetchColumn();
+if (!$hasTable) {
+    die("FATAL: Table 'permit_types' was not found in '{$activeDb}'. Please ensure the ERP database is imported.\n");
+}
+
 // 1. Ensure primary types (1: Izin, 2: Sakit, 3: Cuti) exist
 $types = [
     1 => ['code' => 'izin', 'name' => 'Izin', 'desc' => 'Pengajuan izin umum', 'req' => 0],
