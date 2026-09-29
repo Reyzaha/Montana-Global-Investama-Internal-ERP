@@ -622,10 +622,26 @@ function renderSubTypes(items) {
             attText = `<span class="badge bg-danger-subtle text-danger border border-danger" title="${item.attachment_label || 'Wajib'}"><i class="bi bi-paperclip me-1"></i>Wajib</span>`;
         }
 
-        let timeText = '<span class="badge bg-light text-muted border">-</span>';
-        if (parseInt(item.requires_time) === 1) {
-            timeText = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-clock-fill me-1"></i>2 Jam (Mulai-Selesai)</span>`;
-        }
+        const isTimeActive = (parseInt(item.requires_time) === 1);
+        const timeCell = `
+            <div class="d-flex align-items-center gap-2">
+                <div class="form-check form-switch mb-0" title="Klik untuk cepat ubah fitur jam">
+                    <input class="form-check-input" type="checkbox" ${isTimeActive ? 'checked' : ''} onchange="toggleSubTypeTime(${item.id}, this.checked, '${escapeHtml(item.name)}')">
+                </div>
+                <div>
+                    ${isTimeActive 
+                        ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold d-inline-flex align-items-center" style="font-size: 0.72rem;">
+                             <i class="bi bi-clock-fill me-1"></i>Wajib 2 Jam
+                           </span>
+                           <div class="text-muted" style="font-size: 0.68rem; line-height: 1.1;">Mulai s/d Selesai</div>`
+                        : `<span class="badge bg-light text-muted border" style="font-size: 0.72rem;">
+                             Harian
+                           </span>
+                           <div class="text-muted" style="font-size: 0.68rem; line-height: 1.1;">Tanpa Jam</div>`
+                    }
+                </div>
+            </div>
+        `;
 
         let genderBadge = '<span class="badge bg-light text-dark border">Semua</span>';
         if (item.gender_restriction === 'female') {
@@ -653,7 +669,7 @@ function renderSubTypes(items) {
             <td><span class="badge ${catBadge}">${item.category_name}</span></td>
             <td><small class="fw-semibold">${quotaText}</small></td>
             <td>${attText}</td>
-            <td>${timeText}</td>
+            <td>${timeCell}</td>
             <td>${genderBadge}</td>
             <td>${isPaidBadge}</td>
             <td>${activeSwitch}</td>
@@ -676,6 +692,7 @@ window.openCreateSubTypeModal = function() {
     document.getElementById('formSubType').reset();
     document.getElementById('subRequiresAttachment').checked = false;
     document.getElementById('subRequiresTime').checked = false;
+    updateSubRequiresTimePreview();
     modalSubType.show();
 };
 
@@ -695,6 +712,7 @@ window.openEditSubTypeModal = function(id) {
     document.getElementById('subRequiresAttachment').checked = (parseInt(item.requires_attachment) === 1);
     document.getElementById('subAttachmentLabel').value = item.attachment_label || '';
     document.getElementById('subRequiresTime').checked = (parseInt(item.requires_time) === 1);
+    updateSubRequiresTimePreview();
 
     modalSubType.show();
 };
@@ -743,7 +761,105 @@ function setupSubTypeFormHandler() {
             btn.innerHTML = origText;
         }
     });
+
+    const timeToggle = document.getElementById('subRequiresTime');
+    if (timeToggle) {
+        timeToggle.addEventListener('change', updateSubRequiresTimePreview);
+    }
 }
+
+function updateSubRequiresTimePreview() {
+    const chk = document.getElementById('subRequiresTime');
+    const badge = document.getElementById('subRequiresTimeBadge');
+    const preview = document.getElementById('subRequiresTimePreview');
+    const card = document.getElementById('cardSubRequiresTime');
+
+    if (!chk || !preview) return;
+
+    if (chk.checked) {
+        if (card) card.style.setProperty('border-color', '#3b82f6', 'important');
+        if (badge) {
+            badge.className = 'badge bg-primary text-white';
+            badge.innerHTML = '<i class="bi bi-clock-fill me-1"></i>Fitur Jam AKTIF (2 Jam Wajib)';
+        }
+        preview.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                <div class="d-flex align-items-center text-primary fw-semibold small">
+                    <i class="bi bi-eye-fill me-1"></i>Simulasi Tampilan Form Pengajuan Karyawan
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;">
+                    <i class="bi bi-check-lg me-1"></i>Input Wajib 2 Jam
+                </span>
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-6">
+                    <div class="p-2 border border-primary-subtle rounded bg-primary-subtle bg-opacity-10">
+                        <div class="text-muted fw-semibold" style="font-size: 0.68rem;">1. JAM MULAI IZIN *</div>
+                        <div class="fw-bold text-dark font-monospace d-flex align-items-center gap-1 mt-1">
+                            <i class="bi bi-clock text-primary"></i>
+                            <span>13:30</span>
+                            <span class="text-muted small">WIB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-2 border border-primary-subtle rounded bg-primary-subtle bg-opacity-10">
+                        <div class="text-muted fw-semibold" style="font-size: 0.68rem;">2. JAM SELESAI IZIN *</div>
+                        <div class="fw-bold text-dark font-monospace d-flex align-items-center gap-1 mt-1">
+                            <i class="bi bi-clock-history text-primary"></i>
+                            <span>17:00</span>
+                            <span class="text-muted small">WIB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-2 rounded bg-light border text-muted" style="font-size: 0.74rem;">
+                <div class="d-flex align-items-start gap-1">
+                    <i class="bi bi-info-circle-fill text-primary mt-1"></i>
+                    <div>
+                        <strong>Integrasi Sistem:</strong> Di Rekap Presensi & Dokumen Ekspor PDF Kehadiran, izin ini otomatis tercatat dengan format: 
+                        <span class="badge bg-white text-dark border font-monospace ms-1">"Izin: [Nama Sub] (Pkl 13:30 - 17:00 WIB)"</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        if (card) card.style.setProperty('border-color', '#cbd5e1', 'important');
+        if (badge) {
+            badge.className = 'badge bg-secondary-subtle text-secondary border';
+            badge.innerHTML = '<i class="bi bi-dash-circle me-1"></i>Izin Harian (Non-Aktif)';
+        }
+        preview.innerHTML = `
+            <div class="d-flex align-items-center gap-2 p-1 text-muted">
+                <i class="bi bi-calendar3 text-secondary fs-4"></i>
+                <div style="font-size: 0.78rem;">
+                    <div class="fw-semibold text-dark">Mode Standar (Izin Harian Penuh)</div>
+                    <div>Karyawan hanya memilih tanggal pengajuan tanpa perlu mengisi rentang jam. Cocok untuk Cuti Tahunan, Sakit Rawat Inap, atau Izin 1 Hari Penuh.</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+window.toggleSubTypeTime = async function(id, isChecked, name) {
+    try {
+        const res = await apiPost('/backend/api/hrga/permit-sub-types.php', {
+            action: 'toggle_time',
+            id: id,
+            requires_time: isChecked ? 1 : 0
+        });
+        if (res.success) {
+            showToast(`Fitur jam untuk "${name || 'Sub-Izin'}" ${isChecked ? 'diaktifkan (Wajib Jam Mulai & Selesai)' : 'dinonaktifkan (Izin Harian)'}.`, 'success');
+            await loadSubTypes();
+        } else {
+            showToast(res.message || 'Gagal mengubah fitur jam sub-izin.', 'danger');
+            await loadSubTypes();
+        }
+    } catch (e) {
+        showToast('Gagal mengubah fitur jam sub-izin.', 'danger');
+        await loadSubTypes();
+    }
+};
 
 window.toggleSubTypeStatus = async function(id, isChecked) {
     try {

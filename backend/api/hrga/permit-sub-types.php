@@ -195,6 +195,34 @@ if ($method === 'GET') {
             );
 
             sendSuccess(['id' => $id, 'is_active' => $isActive], 'Status sub-izin berhasil diubah.');
+        } elseif ($action === 'toggle_time') {
+            $id = (int)($input['id'] ?? 0);
+            $requiresTime = !empty($input['requires_time']) ? 1 : 0;
+
+            if ($id <= 0) {
+                sendError('ID sub-izin tidak valid.', 400);
+            }
+
+            $stmtCheck = $pdo->prepare("SELECT name FROM `permit_sub_types` WHERE id = ?");
+            $stmtCheck->execute([$id]);
+            $subName = $stmtCheck->fetchColumn() ?: "ID {$id}";
+
+            $stmtToggleTime = $pdo->prepare("UPDATE `permit_sub_types` SET `requires_time` = ? WHERE `id` = ?");
+            $stmtToggleTime->execute([$requiresTime, $id]);
+
+            recordAuditLog(
+                $user['id'],
+                'TOGGLE_PERMIT_SUB_TYPE_TIME',
+                'PERMIT_CONFIG',
+                (string)$id,
+                "Mengubah fitur jam sub-izin '{$subName}' menjadi " . ($requiresTime ? 'AKTIF (Wajib Jam Mulai & Selesai)' : 'NONAKTIF')
+            );
+
+            sendSuccess([
+                'id' => $id,
+                'name' => $subName,
+                'requires_time' => $requiresTime
+            ], "Fitur jam untuk '{$subName}' berhasil diubah.");
         } elseif ($action === 'delete') {
             $id = (int)($input['id'] ?? 0);
 
