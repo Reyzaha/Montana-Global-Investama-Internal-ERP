@@ -55,24 +55,31 @@ echo "\nProcessing attendance records:\n";
 echo str_repeat('-', 75) . "\n";
 printf("%-12s | %-10s | %-12s | %-12s | %-10s | %-8s\n", "Date", "Check In", "Break Start", "Break End", "Check Out", "Status");
 echo str_repeat('-', 75) . "\n";
-
 foreach ($days as $idx => $day) {
-    // Generate realistic random times:
-    // Check-in: between 07:30:00 and 08:00:00
-    $inMinute = 30 + (($idx * 7 + 3) % 30); // 30 to 59
-    $inSecond = ($idx * 17 + 11) % 60;      // 00 to 59
-    $checkIn = sprintf('07:%02d:%02d', $inMinute, $inSecond);
+    if ($day === '2026-09-29') {
+        // Today: only check in at 07:59:00, no break or check-out yet
+        $checkIn = '07:59:00';
+        $breakStart = null;
+        $breakEnd = null;
+        $checkOut = null;
+    } else {
+        // Generate realistic random times:
+        // Check-in: between 07:30:00 and 08:00:00
+        $inMinute = 30 + (($idx * 7 + 3) % 30); // 30 to 59
+        $inSecond = ($idx * 17 + 11) % 60;      // 00 to 59
+        $checkIn = sprintf('07:%02d:%02d', $inMinute, $inSecond);
 
-    // Break start: 12:00
-    $breakStart = '12:00:00';
+        // Break start: 12:00
+        $breakStart = '12:00:00';
 
-    // Break end: 13:00
-    $breakEnd = '13:00:00';
+        // Break end: 13:00
+        $breakEnd = '13:00:00';
 
-    // Check-out: between 17:00:00 and 17:10:00
-    $outMinute = ($idx * 3 + 2) % 11; // 0 to 10
-    $outSecond = ($outMinute == 10) ? 0 : (($idx * 13 + 7) % 60);
-    $checkOut = sprintf('17:%02d:%02d', $outMinute, $outSecond);
+        // Check-out: between 17:00:00 and 17:10:00
+        $outMinute = ($idx * 3 + 2) % 11; // 0 to 10
+        $outSecond = ($outMinute == 10) ? 0 : (($idx * 13 + 7) % 60);
+        $checkOut = sprintf('17:%02d:%02d', $outMinute, $outSecond);
+    }
 
     $status = 'on_time';
 

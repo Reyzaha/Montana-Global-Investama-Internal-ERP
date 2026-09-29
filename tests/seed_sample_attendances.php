@@ -22,15 +22,19 @@ foreach ($users as $u) {
     foreach ($days as $idx => $d) {
         if ($u['email'] === 'montanaglobalinvestamait@gmail.com' || $uid == 2) {
             // IT: Check in 07:30 - 08:00, Break 12:00 - 13:00, Check out 17:00 - 17:10
-            $inMin = 30 + (($idx * 7 + 3) % 30);
-            $inSec = ($idx * 17 + 11) % 60;
-            $inTime = sprintf('07:%02d:%02d', $inMin, $inSec);
+            if ($d === '2026-09-29') {
+                $stmt->execute([$uid, $d, '07:59:00', null, null, null, 'on_time']);
+            } else {
+                $inMin = 30 + (($idx * 7 + 3) % 30);
+                $inSec = ($idx * 17 + 11) % 60;
+                $inTime = sprintf('07:%02d:%02d', $inMin, $inSec);
 
-            $outMin = ($idx * 3 + 2) % 11;
-            $outSec = ($outMin == 10) ? 0 : (($idx * 13 + 7) % 60);
-            $outTime = sprintf('17:%02d:%02d', $outMin, $outSec);
+                $outMin = ($idx * 3 + 2) % 11;
+                $outSec = ($outMin == 10) ? 0 : (($idx * 13 + 7) % 60);
+                $outTime = sprintf('17:%02d:%02d', $outMin, $outSec);
 
-            $stmt->execute([$uid, $d, $inTime, '12:00:00', '13:00:00', $outTime, 'on_time']);
+                $stmt->execute([$uid, $d, $inTime, '12:00:00', '13:00:00', $outTime, 'on_time']);
+            }
         } elseif ($uid == 4 && $idx % 4 == 1) {
             // HRGA late
             $stmt->execute([$uid, $d, '08:24:15', '12:05:00', '13:00:00', '17:15:30', 'late']);
