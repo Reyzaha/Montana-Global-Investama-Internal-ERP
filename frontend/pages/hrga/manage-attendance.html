@@ -34,11 +34,13 @@
             <p class="text-muted mb-0">Laporan komprehensif absensi, keterlambatan, dan jam kerja karyawan.</p>
           </div>
           <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-success btn-sm px-3 shadow-sm" id="btnExportCsv">
-              <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel / CSV
+            <button class="btn btn-outline-success btn-sm px-3 shadow-sm d-flex align-items-center gap-1" id="btnExportCsv" title="Export Rekapitulasi ke file CSV / Excel">
+              <i class="bi bi-file-earmark-excel-fill text-success"></i>
+              <span>Export Excel / CSV</span>
             </button>
-            <button class="btn btn-danger btn-sm px-3 shadow-sm" id="btnExportPdf">
-              <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF Rekap
+            <button class="btn btn-danger btn-sm px-3 shadow-sm d-flex align-items-center gap-1" id="btnExportPdf" title="Export Laporan Lengkap PDF dengan Format Keterlambatan & Kehadiran Izin">
+              <i class="bi bi-file-earmark-pdf-fill"></i>
+              <span class="fw-semibold">Export PDF (Keterlambatan & Izin)</span>
             </button>
           </div>
         </div>
@@ -169,6 +171,9 @@
 
                 <button class="btn btn-primary btn-sm px-3" id="btnApplyFilter">
                   <i class="bi bi-funnel-fill me-1"></i> Tarik Data
+                </button>
+                <button class="btn btn-outline-danger btn-sm px-2" id="btnExportPdfFilter" title="Export PDF Laporan Lengkap (Keterlambatan & Izin)">
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
                 </button>
               </div>
             </div>

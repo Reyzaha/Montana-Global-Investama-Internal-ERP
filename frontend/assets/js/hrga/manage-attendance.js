@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('filterEmployee').addEventListener('change', applyLocalFilter);
     document.getElementById('filterStatus').addEventListener('change', applyLocalFilter);
     document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
+    const btnPdfFilter = document.getElementById('btnExportPdfFilter');
+    if (btnPdfFilter) btnPdfFilter.addEventListener('click', exportPdf);
     document.getElementById('btnExportCsv').addEventListener('click', exportCsv);
 });
 
@@ -462,468 +464,780 @@ function exportCsv() {
 }
 
 // ==========================================================
-// EXPORT PDF REKAP KEHADIRAN (PER USER & PER TANGGAL)
+// ==========================================================
+// EXPORT PDF REKAP KEHADIRAN (FORMAT KETERLAMBATAN & IZIN PER USER)
 // ==========================================================
 function exportPdf() {
     if (!currentAttendanceData || currentAttendanceData.length === 0) {
         showToast('Tidak ada data absensi untuk diexport.', 'warning');
         return;
     }
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4'); // Portrait A4
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 14;
 
-    const startDate = document.getElementById('filterStartDate').value || currentPeriod.startDate || '';
-    const endDate = document.getElementById('filterEndDate').value || currentPeriod.endDate || '';
-
-    const filterEmpSelect = document.getElementById('filterEmployee');
-    const selectedUserId = filterEmpSelect.value;
-    const selectedEmpText = filterEmpSelect.options[filterEmpSelect.selectedIndex].text;
-
-    // Filter data if specific employee is selected
-    let exportData = currentAttendanceData;
-    if (selectedUserId) {
-        exportData = exportData.filter(x => x.user_id == selectedUserId);
-    }
-
-    if (exportData.length === 0) {
-        showToast('Tidak ada data karyawan yang dipilih untuk diexport.', 'warning');
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('Modul PDF (jsPDF) sedang dimuat. Silakan tunggu sebentar atau muat ulang halaman.', 'warning');
         return;
     }
 
-    // Group data by user
-    const usersMap = {};
-    exportData.forEach(item => {
-        const key = item.user_id || item.employee_email;
-        if (!usersMap[key]) {
-            usersMap[key] = {
-                user_id: item.user_id,
-                name: item.employee_name || item.employee_email,
-                email: item.employee_email,
-                position: item.employee_position || item.role_name || 'Staff Pegawai',
-                records: [],
-                total_attended: 0,
-                on_time: 0,
-                late: 0,
-                permits: 0,
-                absent: 0
-            };
-        }
-        usersMap[key].records.push(item);
+    const btnPrimary = document.getElementById('btnExportPdf');
+    const btnFilter = document.getElementById('btnExportPdfFilter');
+    const oldPrimaryHtml = btnPrimary ? btnPrimary.innerHTML : '';
+    const oldFilterHtml = btnFilter ? btnFilter.innerHTML : '';
 
-        const st = (item.status || '').toLowerCase();
-        if (st === 'on_time') {
-            usersMap[key].total_attended++;
-            usersMap[key].on_time++;
-        } else if (st === 'late') {
-            usersMap[key].total_attended++;
-            usersMap[key].late++;
-        } else if (['cuti', 'izin', 'sakit'].includes(st) || item.has_approved_permit) {
-            usersMap[key].permits++;
-        } else if (st === 'absent') {
-            usersMap[key].absent++;
-        }
-    });
-
-    const userList = Object.values(usersMap);
-
-    // Calculate Grand Totals
-    let grandAttended = 0;
-    let grandOnTime = 0;
-    let grandLate = 0;
-    let grandPermits = 0;
-    let grandAbsent = 0;
-
-    userList.forEach(u => {
-        grandAttended += u.total_attended;
-        grandOnTime += u.on_time;
-        grandLate += u.late;
-        grandPermits += u.permits;
-        grandAbsent += u.absent;
-        // Sort individual records ascending by date
-        u.records.sort((a, b) => (a.date > b.date ? 1 : -1));
-    });
-
-    const grandOnTimePct = grandAttended > 0 ? Math.round((grandOnTime / grandAttended) * 100) : 0;
-    const grandLatePct = grandAttended > 0 ? Math.round((grandLate / grandAttended) * 100) : 0;
-
-    let currentY = 16;
-
-    // ----------------------------------------------------
-    // 1. KOP SURAT PERUSAHAAN (COMPANY HEADER)
-    // ----------------------------------------------------
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.setTextColor(30, 58, 138); // Navy
-    doc.text("PT MONTANA GLOBAL INVESTAMA", margin, currentY);
-
-    currentY += 5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(100, 116, 139); // Gray
-    doc.text("Internal ERP & HRIS Management System - Divisi Human Resources & General Affairs", margin, currentY);
-
-    currentY += 4;
-    // Double decorative lines
-    doc.setDrawColor(30, 58, 138);
-    doc.setLineWidth(1.2);
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-
-    currentY += 1.5;
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.4);
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-
-    currentY += 8;
-
-    // ----------------------------------------------------
-    // 2. JUDUL DOKUMEN & PERIODE
-    // ----------------------------------------------------
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.setTextColor(15, 23, 42); // Slate dark
-    doc.text("LAPORAN REKAPITULASI KEHADIRAN PEGAWAI", pageWidth / 2, currentY, { align: "center" });
-
-    currentY += 5.5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    doc.text(`Periode: ${formatDateIndo(startDate)} s/d ${formatDateIndo(endDate)}`, pageWidth / 2, currentY, { align: "center" });
-
-    currentY += 4.5;
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    const printedAt = new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
-    const officerName = currentUser.name || currentUser.email;
-    doc.text(`Dicetak: ${printedAt} WIB | Petugas HRGA: ${officerName}`, pageWidth / 2, currentY, { align: "center" });
-
-    currentY += 6;
-
-    // ----------------------------------------------------
-    // 3. STATISTIK RINGKASAN (KPI METRIC BOXES)
-    // ----------------------------------------------------
-    const boxWidth = (pageWidth - (margin * 2) - 12) / 4;
-    const boxHeight = 16;
-
-    // Box 1: Total Hadir
-    doc.setFillColor(239, 246, 255); // Blue tint
-    doc.setDrawColor(191, 219, 254);
-    doc.roundedRect(margin, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(30, 64, 175);
-    doc.text("TOTAL HADIR", margin + 4, currentY + 5);
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`${grandAttended}`, margin + 4, currentY + 12);
-
-    // Box 2: Tepat Waktu
-    const box2X = margin + boxWidth + 4;
-    doc.setFillColor(240, 253, 244); // Green tint
-    doc.setDrawColor(187, 247, 208);
-    doc.roundedRect(box2X, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(22, 101, 52);
-    doc.text("TEPAT WAKTU", box2X + 4, currentY + 5);
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`${grandOnTime} (${grandOnTimePct}%)`, box2X + 4, currentY + 12);
-
-    // Box 3: Terlambat
-    const box3X = margin + (boxWidth * 2) + 8;
-    doc.setFillColor(254, 252, 232); // Yellow tint
-    doc.setDrawColor(254, 240, 138);
-    doc.roundedRect(box3X, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(161, 98, 7);
-    doc.text("TERLAMBAT", box3X + 4, currentY + 5);
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`${grandLate} (${grandLatePct}%)`, box3X + 4, currentY + 12);
-
-    // Box 4: Izin/Cuti/Sakit Disetujui
-    const box4X = margin + (boxWidth * 3) + 12;
-    doc.setFillColor(243, 244, 246); // Gray/Info tint
-    doc.setDrawColor(229, 231, 235);
-    doc.roundedRect(box4X, currentY, boxWidth, boxHeight, 1.5, 1.5, 'FD');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(75, 85, 99);
-    doc.text("IZIN/CUTI/SAKIT", box4X + 4, currentY + 5);
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`${grandPermits} Hari`, box4X + 4, currentY + 12);
-
-    currentY += boxHeight + 8;
-
-    // ----------------------------------------------------
-    // 4. TABEL REKAPITULASI RINGKAS SEMUA PEGAWAI
-    // ----------------------------------------------------
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text("I. Ringkasan Kehadiran Seluruh Pegawai", margin, currentY);
-
-    currentY += 4;
-
-    const summaryTableData = userList.map((u, idx) => {
-        const uPct = u.total_attended > 0 ? Math.round((u.on_time / u.total_attended) * 100) : 0;
-        return [
-            idx + 1,
-            u.name,
-            u.position,
-            u.total_attended,
-            u.on_time,
-            u.late,
-            u.permits,
-            u.absent,
-            `${uPct}%`
-        ];
-    });
-
-    doc.autoTable({
-        startY: currentY,
-        head: [['No', 'Nama Pegawai', 'Jabatan', 'Total Hadir', 'On Time', 'Terlambat', 'Izin/Cuti', 'Absen', 'Disiplin']],
-        body: summaryTableData,
-        theme: 'striped',
-        styles: {
-            fontSize: 8,
-            cellPadding: 2,
-            lineColor: [226, 232, 240],
-            lineWidth: 0.1
-        },
-        headStyles: {
-            fillColor: [30, 58, 138], // Navy
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-            halign: 'left'
-        },
-        columnStyles: {
-            0: { halign: 'center', cellWidth: 8 },
-            1: { cellWidth: 42 },
-            2: { cellWidth: 32 },
-            3: { halign: 'center', cellWidth: 18 },
-            4: { halign: 'center', cellWidth: 16 },
-            5: { halign: 'center', cellWidth: 16 },
-            6: { halign: 'center', cellWidth: 16 },
-            7: { halign: 'center', cellWidth: 14 },
-            8: { halign: 'center', cellWidth: 18 }
-        },
-        alternateRowStyles: {
-            fillColor: [248, 250, 252]
-        }
-    });
-
-    currentY = doc.lastAutoTable.finalY + 8;
-
-    // ----------------------------------------------------
-    // 5. DETAIL KEHADIRAN RAPI PER USER DAN PER TANGGAL
-    // ----------------------------------------------------
-    if (currentY > pageHeight - 45) {
-        doc.addPage();
-        currentY = 16;
+    if (btnPrimary) {
+        btnPrimary.disabled = true;
+        btnPrimary.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Menyiapkan PDF...`;
+    }
+    if (btnFilter) {
+        btnFilter.disabled = true;
+        btnFilter.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
     }
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text("II. Detail Kehadiran Harian Per Pegawai", margin, currentY);
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4'); // Portrait A4
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 14;
 
-    currentY += 4;
+        const startDate = document.getElementById('filterStartDate').value || currentPeriod.startDate || '';
+        const endDate = document.getElementById('filterEndDate').value || currentPeriod.endDate || '';
 
-    userList.forEach((u, userIdx) => {
-        if (currentY > pageHeight - 50) {
-            doc.addPage();
-            currentY = 16;
+        const filterEmpSelect = document.getElementById('filterEmployee');
+        const selectedUserId = filterEmpSelect ? filterEmpSelect.value : '';
+        const selectedEmpText = filterEmpSelect && filterEmpSelect.selectedIndex >= 0 ? filterEmpSelect.options[filterEmpSelect.selectedIndex].text : '';
+
+        // Filter data if specific employee is selected
+        let exportData = currentAttendanceData;
+        if (selectedUserId) {
+            exportData = exportData.filter(x => x.user_id == selectedUserId);
         }
 
-        // Employee Info Card Banner
-        doc.setFillColor(241, 245, 249);
-        doc.setDrawColor(203, 213, 225);
-        doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 11, 1.5, 1.5, 'FD');
+        if (exportData.length === 0) {
+            showToast('Tidak ada data karyawan yang dipilih untuk diexport.', 'warning');
+            return;
+        }
 
-        // Blue accent indicator on the left
-        doc.setFillColor(30, 58, 138);
-        doc.rect(margin, currentY, 2.5, 11, 'F');
+        // Helper calculate late duration in minutes
+        function parseLateMinutes(checkInStr) {
+            if (!checkInStr) return 0;
+            const parts = checkInStr.split(':');
+            if (parts.length < 2) return 0;
+            const mins = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            const standardMins = 8 * 60; // Jam kantor 08:00 WIB
+            return Math.max(0, mins - standardMins);
+        }
 
+        function formatLateDuration(mins) {
+            if (mins <= 0) return 'Terlambat';
+            if (mins < 60) return `+${mins} Menit`;
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return `+${h} Jam ${m > 0 ? m + ' Mnt' : ''}`;
+        }
+
+        // Group data by user & build dedicated audit collections
+        const usersMap = {};
+        const allLateRecords = [];
+        const allPermitRecords = [];
+
+        exportData.forEach(item => {
+            const key = item.user_id || item.employee_email;
+            if (!usersMap[key]) {
+                usersMap[key] = {
+                    user_id: item.user_id,
+                    name: item.employee_name || item.employee_email,
+                    email: item.employee_email,
+                    position: item.employee_position || item.role_name || 'Staff Pegawai',
+                    records: [],
+                    total_attended: 0,
+                    on_time: 0,
+                    late: 0,
+                    izin: 0,
+                    cuti: 0,
+                    sakit: 0,
+                    permits_total: 0,
+                    absent: 0
+                };
+            }
+            usersMap[key].records.push(item);
+
+            const st = (item.status || '').toLowerCase();
+            const cat = (item.permit_category || '').toLowerCase();
+            const sub = (item.permit_sub_type_name || '').toLowerCase();
+
+            if (st === 'on_time') {
+                usersMap[key].total_attended++;
+                usersMap[key].on_time++;
+            } else if (st === 'late') {
+                usersMap[key].total_attended++;
+                usersMap[key].late++;
+            }
+
+            if (cat === 'izin' || st === 'izin') {
+                usersMap[key].izin++;
+                usersMap[key].permits_total++;
+            } else if (cat === 'cuti' || st === 'cuti') {
+                usersMap[key].cuti++;
+                usersMap[key].permits_total++;
+            } else if (cat === 'sakit' || st === 'sakit') {
+                usersMap[key].sakit++;
+                usersMap[key].permits_total++;
+            } else if (item.has_approved_permit) {
+                usersMap[key].permits_total++;
+            }
+
+            if (st === 'absent') {
+                usersMap[key].absent++;
+            }
+
+            // Detect Late Arrival
+            const isLateStatus = (st === 'late');
+            const isLateTime = (item.check_in && item.check_in > '08:00:59' && item.employee_email !== 'montanaglobalinvestamait@gmail.com');
+            if (isLateStatus || isLateTime) {
+                const lateMins = parseLateMinutes(item.check_in);
+                const durText = formatLateDuration(lateMins);
+
+                let lateIzinStatus = 'Tanpa Izin Terlambat';
+                if (item.has_approved_permit && sub.includes('terlambat')) {
+                    const timePkl = item.permit_time ? ` (Pkl ${item.permit_time.substring(0, 5)} WIB)` : '';
+                    lateIzinStatus = `Izin Disetujui${timePkl}`;
+                } else if (item.has_approved_permit) {
+                    lateIzinStatus = `Izin Khusus (${item.permit_sub_type_name || item.permit_category_name})`;
+                }
+
+                allLateRecords.push({
+                    date: item.date,
+                    user_id: item.user_id,
+                    employee_name: item.employee_name || item.employee_email,
+                    employee_position: item.employee_position || item.role_name || '-',
+                    check_in: item.check_in || '-',
+                    late_duration: durText,
+                    late_minutes: lateMins,
+                    permit_status: lateIzinStatus,
+                    notes: item.permit_description ? `Alasan: ${item.permit_description}` : (item.notes || '-')
+                });
+            }
+
+            // Detect Permit / Leave / Sick Record
+            if (item.has_approved_permit || ['cuti', 'izin', 'sakit'].includes(st)) {
+                let catName = item.permit_category_name || (st === 'cuti' ? 'Cuti' : (st === 'sakit' ? 'Sakit' : 'Izin'));
+                let subName = item.permit_sub_type_name || catName;
+                if (item.permit_time) {
+                    subName += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
+                }
+
+                let proofDoc = 'Form HRGA';
+                if (st === 'sakit' || cat === 'sakit') {
+                    proofDoc = item.is_sakit_without_attachment ? 'Tanpa Surat Dokter' : 'Ada Surat Dokter';
+                } else if (item.has_attachment) {
+                    proofDoc = 'Ada Lampiran';
+                }
+
+                allPermitRecords.push({
+                    date: item.date,
+                    user_id: item.user_id,
+                    employee_name: item.employee_name || item.employee_email,
+                    employee_position: item.employee_position || item.role_name || '-',
+                    category: catName,
+                    sub_type: subName,
+                    description: item.permit_description || item.notes || '-',
+                    proof: proofDoc,
+                    status: 'Disetujui OM & HR',
+                    is_sakit_without_doc: (st === 'sakit' || cat === 'sakit') && item.is_sakit_without_attachment
+                });
+            }
+        });
+
+        const userList = Object.values(usersMap);
+
+        // Sort data
+        allLateRecords.sort((a, b) => (a.date > b.date ? 1 : (a.date < b.date ? -1 : a.employee_name.localeCompare(b.employee_name))));
+        allPermitRecords.sort((a, b) => (a.date > b.date ? 1 : (a.date < b.date ? -1 : a.employee_name.localeCompare(b.employee_name))));
+        userList.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Calculate Grand Totals
+        let grandAttended = 0;
+        let grandOnTime = 0;
+        let grandLate = 0;
+        let grandIzin = 0;
+        let grandCuti = 0;
+        let grandSakit = 0;
+        let grandPermits = 0;
+        let grandAbsent = 0;
+
+        userList.forEach(u => {
+            grandAttended += u.total_attended;
+            grandOnTime += u.on_time;
+            grandLate += u.late;
+            grandIzin += u.izin;
+            grandCuti += u.cuti;
+            grandSakit += u.sakit;
+            grandPermits += u.permits_total;
+            grandAbsent += u.absent;
+            u.records.sort((a, b) => (a.date > b.date ? 1 : -1));
+        });
+
+        const grandOnTimePct = grandAttended > 0 ? Math.round((grandOnTime / grandAttended) * 100) : 0;
+        const grandLatePct = grandAttended > 0 ? Math.round((grandLate / grandAttended) * 100) : 0;
+
+        let currentY = 16;
+
+        // ----------------------------------------------------
+        // 1. KOP SURAT PERUSAHAAN (COMPANY HEADER)
+        // ----------------------------------------------------
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8.5);
-        doc.setTextColor(15, 23, 42);
-        doc.text(`${userIdx + 1}. ${u.name.toUpperCase()} - ${u.position}`, margin + 5, currentY + 4.5);
+        doc.setFontSize(14);
+        doc.setTextColor(30, 58, 138); // Navy
+        doc.text("PT MONTANA GLOBAL INVESTAMA", margin, currentY);
 
+        currentY += 5;
         doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139); // Gray
+        doc.text("Internal ERP & HRIS Management System - Divisi Human Resources & General Affairs (HRGA)", margin, currentY);
+
+        currentY += 4;
+        doc.setDrawColor(30, 58, 138);
+        doc.setLineWidth(1.2);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+
+        currentY += 1.5;
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.4);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+
+        currentY += 7.5;
+
+        // ----------------------------------------------------
+        // 2. JUDUL DOKUMEN & PERIODE
+        // ----------------------------------------------------
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42); // Slate dark
+        doc.text("LAPORAN REKAPITULASI KEHADIRAN, KETERLAMBATAN & IZIN PEGAWAI", pageWidth / 2, currentY, { align: "center" });
+
+        currentY += 5.5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        const filterSubtitle = selectedUserId ? `Pegawai: ${selectedEmpText} | Periode: ${formatDateIndo(startDate)} s/d ${formatDateIndo(endDate)}` : `Periode: ${formatDateIndo(startDate)} s/d ${formatDateIndo(endDate)}`;
+        doc.text(filterSubtitle, pageWidth / 2, currentY, { align: "center" });
+
+        currentY += 4.5;
         doc.setFontSize(7.5);
-        doc.setTextColor(71, 85, 105);
-        const userSummaryText = `Total Hadir: ${u.total_attended} Hari  |  Tepat Waktu: ${u.on_time} Hari  |  Terlambat: ${u.late} Hari  |  Izin/Cuti/Sakit: ${u.permits} Hari  |  Absen: ${u.absent} Hari`;
-        doc.text(userSummaryText, margin + 5, currentY + 8.8);
+        doc.setTextColor(100, 116, 139);
+        const printedAt = new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
+        const officerName = currentUser.name || currentUser.email;
+        doc.text(`Dicetak: ${printedAt} WIB | Petugas HRGA: ${officerName}`, pageWidth / 2, currentY, { align: "center" });
 
-        currentY += 13;
+        currentY += 6;
 
-        // Daily Attendance Table for this Employee
-        const detailRows = u.records.map((r, rIdx) => {
-            let statusLabel = 'TEPAT WAKTU';
-            let keterangan = 'Hadir Tepat Waktu';
-            const st = (r.status || '').toLowerCase();
+        // ----------------------------------------------------
+        // 3. STATISTIK RINGKASAN (5 KPI METRIC BOXES)
+        // ----------------------------------------------------
+        const boxGap = 3;
+        const boxCount = 5;
+        const totalBoxWidth = pageWidth - (margin * 2) - (boxGap * (boxCount - 1));
+        const boxWidth = totalBoxWidth / boxCount;
+        const boxHeight = 15;
 
-            if (st === 'late') {
-                statusLabel = 'TERLAMBAT';
-                keterangan = 'Terlambat Masuk';
-            } else if (st === 'cuti') {
-                statusLabel = 'CUTI';
-                keterangan = 'Cuti';
-            } else if (st === 'izin') {
-                statusLabel = 'IZIN';
-                keterangan = 'Izin';
-            } else if (st === 'sakit') {
-                statusLabel = 'SAKIT';
-                keterangan = 'Sakit';
-            } else if (st === 'absent') {
-                statusLabel = 'ABSEN';
-                keterangan = 'Tidak Masuk Kerja';
-            }
+        // Box 1: Total Hadir
+        doc.setFillColor(239, 246, 255);
+        doc.setDrawColor(191, 219, 254);
+        doc.roundedRect(margin, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(30, 64, 175);
+        doc.text("TOTAL HADIR", margin + 3, currentY + 4.5);
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${grandAttended}`, margin + 3, currentY + 11.5);
 
-            if (r.has_approved_permit) {
-                const cat = r.permit_category_name || '';
-                let sub = r.permit_sub_type_name || '';
-                if (r.permit_time) {
-                    sub += ` (Pkl ${r.permit_time.substring(0, 5)} WIB)`;
-                }
-                if (r.is_sakit_without_attachment) {
-                    sub += ' [Tanpa Surat Dokter]';
-                }
-                const desc = r.permit_description ? ` - ${r.permit_description}` : '';
-                keterangan = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
-                if (st === 'late' && sub.toLowerCase().includes('terlambat')) {
-                    statusLabel = 'TERLAMBAT (SAH)';
-                }
-            }
+        // Box 2: Tepat Waktu
+        const b2X = margin + boxWidth + boxGap;
+        doc.setFillColor(240, 253, 244);
+        doc.setDrawColor(187, 247, 208);
+        doc.roundedRect(b2X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(22, 101, 52);
+        doc.text("TEPAT WAKTU", b2X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${grandOnTime} (${grandOnTimePct}%)`, b2X + 3, currentY + 11.5);
 
+        // Box 3: Terlambat
+        const b3X = b2X + boxWidth + boxGap;
+        doc.setFillColor(254, 252, 232);
+        doc.setDrawColor(254, 240, 138);
+        doc.roundedRect(b3X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(161, 98, 7);
+        doc.text("TERLAMBAT", b3X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${grandLate} (${grandLatePct}%)`, b3X + 3, currentY + 11.5);
+
+        // Box 4: Izin/Cuti/Sakit
+        const b4X = b3X + boxWidth + boxGap;
+        doc.setFillColor(243, 244, 246);
+        doc.setDrawColor(229, 231, 235);
+        doc.roundedRect(b4X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(75, 85, 99);
+        doc.text("IZIN/CUTI/SAKIT", b4X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${grandPermits} Hari`, b4X + 3, currentY + 11.5);
+
+        // Box 5: Absen (Alpha)
+        const b5X = b4X + boxWidth + boxGap;
+        doc.setFillColor(254, 242, 242);
+        doc.setDrawColor(254, 202, 202);
+        doc.roundedRect(b5X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(185, 28, 28);
+        doc.text("ABSEN (ALPHA)", b5X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${grandAbsent} Hari`, b5X + 3, currentY + 11.5);
+
+        currentY += boxHeight + 8;
+
+        // ----------------------------------------------------
+        // 4. BAGIAN I: REKAPITULASI DISIPLIN & KEHADIRAN PER PEGAWAI
+        // ----------------------------------------------------
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.text("I. Rekapitulasi Kehadiran, Keterlambatan & Izin Seluruh Pegawai", margin, currentY);
+
+        currentY += 4;
+
+        const summaryTableData = userList.map((u, idx) => {
+            const uPct = u.total_attended > 0 ? Math.round((u.on_time / u.total_attended) * 100) : 0;
             return [
-                rIdx + 1,
-                formatDateIndo(r.date),
-                r.check_in || '-',
-                r.break_start || '-',
-                r.break_end || '-',
-                r.check_out || '-',
-                statusLabel,
-                keterangan
+                idx + 1,
+                u.name,
+                u.position,
+                u.total_attended,
+                u.on_time,
+                u.late,
+                u.izin,
+                u.cuti,
+                u.sakit,
+                u.absent,
+                `${uPct}%`
             ];
         });
 
         doc.autoTable({
             startY: currentY,
-            head: [['No', 'Tanggal & Hari', 'Jam Masuk', 'Istirahat Out', 'Istirahat In', 'Jam Pulang', 'Status', 'Keterangan']],
-            body: detailRows,
-            theme: 'grid',
+            head: [['No', 'Nama Pegawai', 'Jabatan / Posisi', 'Hadir', 'On Time', 'Terlambat', 'Izin', 'Cuti', 'Sakit', 'Absen', 'Disiplin']],
+            body: summaryTableData,
+            theme: 'striped',
             styles: {
-                fontSize: 7.5,
+                fontSize: 7.2,
                 cellPadding: 1.8,
                 lineColor: [226, 232, 240],
                 lineWidth: 0.1
             },
             headStyles: {
-                fillColor: [51, 65, 85], // Slate dark gray
+                fillColor: [30, 58, 138], // Navy
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
                 halign: 'left'
             },
             columnStyles: {
                 0: { halign: 'center', cellWidth: 8 },
-                1: { cellWidth: 36 },
-                2: { halign: 'center', cellWidth: 18 },
-                3: { halign: 'center', cellWidth: 18 },
-                4: { halign: 'center', cellWidth: 18 },
-                5: { halign: 'center', cellWidth: 18 },
-                6: { halign: 'center', cellWidth: 24, fontStyle: 'bold' },
-                7: { cellWidth: 42 }
+                1: { cellWidth: 38 },
+                2: { cellWidth: 28 },
+                3: { halign: 'center', cellWidth: 14 },
+                4: { halign: 'center', cellWidth: 14 },
+                5: { halign: 'center', cellWidth: 16, fontStyle: 'bold', textColor: [180, 83, 9] },
+                6: { halign: 'center', cellWidth: 12 },
+                7: { halign: 'center', cellWidth: 12 },
+                8: { halign: 'center', cellWidth: 12 },
+                9: { halign: 'center', cellWidth: 12, textColor: [185, 28, 28] },
+                10: { halign: 'center', cellWidth: 16, fontStyle: 'bold' }
             },
-            didParseCell: function(data) {
-                if (data.section === 'body' && data.column.index === 6) {
-                    const text = data.cell.raw;
-                    if (text === 'TEPAT WAKTU') {
-                        data.cell.styles.textColor = [22, 101, 52]; // Dark green
-                    } else if (text.includes('TERLAMBAT')) {
-                        data.cell.styles.textColor = [180, 83, 9]; // Dark yellow / amber
-                    } else if (text === 'CUTI' || text === 'IZIN') {
-                        data.cell.styles.textColor = [30, 58, 138]; // Dark blue
-                    } else if (text === 'SAKIT' || text === 'ABSEN') {
-                        data.cell.styles.textColor = [185, 28, 28]; // Dark red
-                    }
-                }
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
             }
         });
 
-        currentY = doc.lastAutoTable.finalY + 6;
-    });
+        currentY = doc.lastAutoTable.finalY + 8;
 
-    // ----------------------------------------------------
-    // 6. LEMBAR PENGESAHAN / TANDA TANGAN (SIGNATURE BLOCK)
-    // ----------------------------------------------------
-    if (currentY > pageHeight - 40) {
-        doc.addPage();
-        currentY = 20;
-    } else {
+        // ----------------------------------------------------
+        // 5. BAGIAN II: FORMAT & RINCIAN KETERLAMBATAN PER PEGAWAI
+        // ----------------------------------------------------
+        if (currentY > pageHeight - 50) {
+            doc.addPage();
+            currentY = 16;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.text("II. Rincian & Format Keterlambatan Jam Masuk Pegawai (Standar: 08:00 WIB)", margin, currentY);
+
         currentY += 4;
-    }
 
-    const todayDateIndo = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    const signX1 = margin + 10;
-    const signX2 = pageWidth - margin - 60;
+        if (allLateRecords.length === 0) {
+            // Box Nihil Keterlambatan
+            doc.setFillColor(240, 253, 244);
+            doc.setDrawColor(187, 247, 208);
+            doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 10, 1.2, 1.2, 'FD');
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(22, 101, 52);
+            doc.text("✓ Nihil. Tidak ada catatan keterlambatan pegawai pada periode ini (Seluruh kehadiran tepat waktu).", margin + 4, currentY + 6.5);
+            currentY += 15;
+        } else {
+            const lateRows = allLateRecords.map((l, lIdx) => [
+                lIdx + 1,
+                formatDateIndo(l.date),
+                l.employee_name,
+                l.employee_position,
+                l.check_in,
+                l.late_duration,
+                l.permit_status,
+                l.notes
+            ]);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(30, 41, 59);
+            doc.autoTable({
+                startY: currentY,
+                head: [['No', 'Tanggal', 'Nama Pegawai', 'Jabatan', 'Jam Masuk', 'Keterlambatan', 'Pengesahan Izin', 'Alasan / Catatan']],
+                body: lateRows,
+                theme: 'grid',
+                styles: {
+                    fontSize: 7.2,
+                    cellPadding: 1.8,
+                    lineColor: [226, 232, 240],
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: [180, 83, 9], // Dark Amber / Warning Header
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    halign: 'left'
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 8 },
+                    1: { cellWidth: 26 },
+                    2: { cellWidth: 32 },
+                    3: { cellWidth: 24 },
+                    4: { halign: 'center', cellWidth: 16 },
+                    5: { halign: 'center', cellWidth: 20, fontStyle: 'bold', textColor: [180, 83, 9] },
+                    6: { cellWidth: 28 },
+                    7: { cellWidth: 28 }
+                }
+            });
 
-    doc.text(`Jakarta, ${todayDateIndo}`, signX2, currentY);
-    currentY += 5;
-    doc.text("Dibuat Oleh,", signX1, currentY);
-    doc.text("Mengetahui & Menyetujui,", signX2, currentY);
+            currentY = doc.lastAutoTable.finalY + 8;
+        }
 
-    currentY += 18; // Spasi tanda tangan
+        // ----------------------------------------------------
+        // 6. BAGIAN III: FORMAT & RINCIAN KEHADIRAN IZIN, CUTI & SAKIT
+        // ----------------------------------------------------
+        if (currentY > pageHeight - 50) {
+            doc.addPage();
+            currentY = 16;
+        }
 
-    doc.setFont("helvetica", "bold");
-    doc.text(`(${officerName})`, signX1, currentY);
-    doc.text("( Direksi / Head of HRGA )", signX2, currentY);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.text("III. Rincian & Format Kehadiran Izin, Cuti & Sakit Pegawai (Disetujui OM & HR)", margin, currentY);
 
-    currentY += 4;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text("HRGA Operations Officer", signX1, currentY);
-    doc.text("PT Montana Global Investama", signX2, currentY);
+        currentY += 4;
 
-    // ----------------------------------------------------
-    // 7. FOOTER NOMOR HALAMAN DI SETIAP HALAMAN
-    // ----------------------------------------------------
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
+        if (allPermitRecords.length === 0) {
+            // Box Nihil Izin
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(226, 232, 240);
+            doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 10, 1.2, 1.2, 'FD');
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(71, 85, 105);
+            doc.text("• Nihil. Tidak ada pengajuan izin, cuti, atau sakit yang tercatat pada periode ini.", margin + 4, currentY + 6.5);
+            currentY += 15;
+        } else {
+            const permitRows = allPermitRecords.map((p, pIdx) => [
+                pIdx + 1,
+                formatDateIndo(p.date),
+                p.employee_name,
+                p.category,
+                p.sub_type,
+                p.description,
+                p.proof,
+                p.status
+            ]);
+
+            doc.autoTable({
+                startY: currentY,
+                head: [['No', 'Tanggal', 'Nama Pegawai', 'Kategori', 'Sub-Jenis & Jam Izin', 'Alasan / Keterangan', 'Kelengkapan Surat', 'Status']],
+                body: permitRows,
+                theme: 'grid',
+                styles: {
+                    fontSize: 7.2,
+                    cellPadding: 1.8,
+                    lineColor: [226, 232, 240],
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: [51, 65, 85], // Slate dark Header
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    halign: 'left'
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 8 },
+                    1: { cellWidth: 26 },
+                    2: { cellWidth: 32 },
+                    3: { halign: 'center', cellWidth: 16, fontStyle: 'bold' },
+                    4: { cellWidth: 32 },
+                    5: { cellWidth: 30 },
+                    6: { halign: 'center', cellWidth: 20 },
+                    7: { halign: 'center', cellWidth: 18, textColor: [22, 101, 52] }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body') {
+                        // Highlight category
+                        if (data.column.index === 3) {
+                            const val = (data.cell.raw || '').toLowerCase();
+                            if (val === 'cuti') data.cell.styles.textColor = [30, 58, 138];
+                            else if (val === 'sakit') data.cell.styles.textColor = [185, 28, 28];
+                            else if (val === 'izin') data.cell.styles.textColor = [13, 148, 136];
+                        }
+                        // Highlight Tanpa Surat Dokter
+                        if (data.column.index === 6 && data.cell.raw === 'Tanpa Surat Dokter') {
+                            data.cell.styles.textColor = [185, 28, 28];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                }
+            });
+
+            currentY = doc.lastAutoTable.finalY + 8;
+        }
+
+        // ----------------------------------------------------
+        // 7. BAGIAN IV: DETAIL LOG KEHADIRAN HARIAN PER PEGAWAI
+        // ----------------------------------------------------
+        if (currentY > pageHeight - 50) {
+            doc.addPage();
+            currentY = 16;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.text("IV. Detail Log Kehadiran Harian Per Pegawai", margin, currentY);
+
+        currentY += 4;
+
+        userList.forEach((u, userIdx) => {
+            if (currentY > pageHeight - 45) {
+                doc.addPage();
+                currentY = 16;
+            }
+
+            // Employee Card Banner
+            doc.setFillColor(241, 245, 249);
+            doc.setDrawColor(203, 213, 225);
+            doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 10, 1.2, 1.2, 'FD');
+
+            doc.setFillColor(30, 58, 138);
+            doc.rect(margin, currentY, 2.5, 10, 'F');
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`${userIdx + 1}. ${u.name.toUpperCase()} - ${u.position}`, margin + 5, currentY + 4.2);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.2);
+            doc.setTextColor(71, 85, 105);
+            const userSummaryText = `Total Hadir: ${u.total_attended} Hari | On Time: ${u.on_time} | Terlambat: ${u.late} | Izin: ${u.izin} | Cuti: ${u.cuti} | Sakit: ${u.sakit} | Absen: ${u.absent}`;
+            doc.text(userSummaryText, margin + 5, currentY + 8);
+
+            currentY += 12;
+
+            const detailRows = u.records.map((r, rIdx) => {
+                let statusLabel = 'TEPAT WAKTU';
+                let keterangan = 'Hadir Tepat Waktu';
+                const st = (r.status || '').toLowerCase();
+
+                if (st === 'late') {
+                    statusLabel = 'TERLAMBAT';
+                    keterangan = 'Terlambat Masuk';
+                } else if (st === 'cuti') {
+                    statusLabel = 'CUTI';
+                    keterangan = 'Cuti';
+                } else if (st === 'izin') {
+                    statusLabel = 'IZIN';
+                    keterangan = 'Izin';
+                } else if (st === 'sakit') {
+                    statusLabel = 'SAKIT';
+                    keterangan = 'Sakit';
+                } else if (st === 'absent') {
+                    statusLabel = 'ABSEN';
+                    keterangan = 'Tidak Masuk Kerja';
+                }
+
+                if (r.has_approved_permit) {
+                    const cat = r.permit_category_name || '';
+                    let sub = r.permit_sub_type_name || '';
+                    if (r.permit_time) {
+                        sub += ` (Pkl ${r.permit_time.substring(0, 5)} WIB)`;
+                    }
+                    if (r.is_sakit_without_attachment) {
+                        sub += ' [Tanpa Surat Dokter]';
+                    }
+                    const desc = r.permit_description ? ` - ${r.permit_description}` : '';
+                    keterangan = `[${cat}: ${sub}] Disetujui OM & HR${desc}`;
+                    if (st === 'late' && sub.toLowerCase().includes('terlambat')) {
+                        statusLabel = 'TERLAMBAT (SAH)';
+                    }
+                }
+
+                return [
+                    rIdx + 1,
+                    formatDateIndo(r.date),
+                    r.check_in || '-',
+                    r.break_start || '-',
+                    r.break_end || '-',
+                    r.check_out || '-',
+                    statusLabel,
+                    keterangan
+                ];
+            });
+
+            doc.autoTable({
+                startY: currentY,
+                head: [['No', 'Tanggal & Hari', 'Jam Masuk', 'Istirahat Out', 'Istirahat In', 'Jam Pulang', 'Status', 'Keterangan']],
+                body: detailRows,
+                theme: 'grid',
+                styles: {
+                    fontSize: 7.2,
+                    cellPadding: 1.6,
+                    lineColor: [226, 232, 240],
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: [51, 65, 85],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    halign: 'left'
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 8 },
+                    1: { cellWidth: 34 },
+                    2: { halign: 'center', cellWidth: 17 },
+                    3: { halign: 'center', cellWidth: 17 },
+                    4: { halign: 'center', cellWidth: 17 },
+                    5: { halign: 'center', cellWidth: 17 },
+                    6: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },
+                    7: { cellWidth: 46 }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 6) {
+                        const text = data.cell.raw;
+                        if (text === 'TEPAT WAKTU') {
+                            data.cell.styles.textColor = [22, 101, 52];
+                        } else if (text.includes('TERLAMBAT')) {
+                            data.cell.styles.textColor = [180, 83, 9];
+                        } else if (text === 'CUTI' || text === 'IZIN') {
+                            data.cell.styles.textColor = [30, 58, 138];
+                        } else if (text === 'SAKIT' || text === 'ABSEN') {
+                            data.cell.styles.textColor = [185, 28, 28];
+                        }
+                    }
+                }
+            });
+
+            currentY = doc.lastAutoTable.finalY + 6;
+        });
+
+        // ----------------------------------------------------
+        // 8. LEMBAR PENGESAHAN / TANDA TANGAN (SIGNATURE BLOCK)
+        // ----------------------------------------------------
+        if (currentY > pageHeight - 40) {
+            doc.addPage();
+            currentY = 20;
+        } else {
+            currentY += 4;
+        }
+
+        const todayDateIndo = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        const signX1 = margin + 10;
+        const signX2 = pageWidth - margin - 60;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 41, 59);
+
+        doc.text(`Jakarta, ${todayDateIndo}`, signX2, currentY);
+        currentY += 5;
+        doc.text("Dibuat Oleh,", signX1, currentY);
+        doc.text("Mengetahui & Menyetujui,", signX2, currentY);
+
+        currentY += 18; // Space for signature
+
+        doc.setFont("helvetica", "bold");
+        doc.text(`(${officerName})`, signX1, currentY);
+        doc.text("( Direksi / Head of HRGA )", signX2, currentY);
+
+        currentY += 4;
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
-        doc.setTextColor(148, 163, 184);
+        doc.setTextColor(100, 116, 139);
+        doc.text("HRGA Operations Officer", signX1, currentY);
+        doc.text("PT Montana Global Investama", signX2, currentY);
 
-        // Footer dividing line
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.3);
-        doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
+        // ----------------------------------------------------
+        // 9. FOOTER NOMOR HALAMAN DI SETIAP HALAMAN
+        // ----------------------------------------------------
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(148, 163, 184);
 
-        doc.text("PT Montana Global Investama - Dokumen Resmi Laporan Kehadiran", margin, pageHeight - 6);
-        doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: "right" });
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.3);
+            doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
+
+            doc.text("PT Montana Global Investama - Dokumen Resmi Laporan Kehadiran, Keterlambatan & Izin", margin, pageHeight - 6);
+            doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: "right" });
+        }
+
+        // Generate filename
+        let filename = `Laporan_Kehadiran_Keterlambatan_Izin_MGI_${startDate}_sd_${endDate}`;
+        if (selectedUserId) {
+            const cleanName = selectedEmpText.split('(')[0].trim().replace(/[^a-zA-Z0-9]/g, '_');
+            filename += `_${cleanName}`;
+        }
+        filename += '.pdf';
+
+        doc.save(filename);
+        showToast('Laporan PDF rekap kehadiran berhasil diunduh.', 'success');
+    } catch (err) {
+        console.error('Error generating PDF:', err);
+        showToast('Gagal memproses file PDF: ' + err.message, 'danger');
+    } finally {
+        if (btnPrimary) {
+            btnPrimary.disabled = false;
+            btnPrimary.innerHTML = oldPrimaryHtml;
+        }
+        if (btnFilter) {
+            btnFilter.disabled = false;
+            btnFilter.innerHTML = oldFilterHtml;
+        }
     }
-
-    // Generate filename
-    let filename = `Rekap_Kehadiran_MGI_${startDate}_sd_${endDate}`;
-    if (selectedUserId) {
-        const cleanName = selectedEmpText.split('(')[0].trim().replace(/[^a-zA-Z0-9]/g, '_');
-        filename += `_${cleanName}`;
-    }
-    filename += '.pdf';
-
-    doc.save(filename);
-    showToast('Laporan PDF rekap kehadiran berhasil diunduh.', 'success');
 }
