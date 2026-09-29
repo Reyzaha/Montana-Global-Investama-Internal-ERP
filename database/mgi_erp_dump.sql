@@ -803,6 +803,7 @@ CREATE TABLE `permit_sub_types` (
   `name` varchar(150) NOT NULL,
   `description` text DEFAULT NULL,
   `requires_attachment` tinyint(1) NOT NULL DEFAULT 0,
+  `requires_time` tinyint(1) NOT NULL DEFAULT 0,
   `attachment_label` varchar(150) DEFAULT NULL,
   `quota_days` decimal(5,1) DEFAULT NULL,
   `quota_period` enum('per_year','per_event','lifetime','unlimited') NOT NULL DEFAULT 'per_year',
@@ -825,7 +826,7 @@ CREATE TABLE `permit_sub_types` (
 
 LOCK TABLES `permit_sub_types` WRITE;
 /*!40000 ALTER TABLE `permit_sub_types` DISABLE KEYS */;
-INSERT INTO `permit_sub_types` VALUES (13,1,'Terlambat','Izin datang terlambat ke kantor',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(14,1,'Pulang Cepat','Izin pulang lebih cepat dari jam kerja resmi',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(15,1,'Dinas','Tugas / perjalanan dinas kantor di luar area kerja',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(16,1,'Izin Tidak Masuk Kerja',NULL,0,NULL,NULL,'per_year',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(17,2,'Sakit','Pengajuan sakit (dengan surat dokter)',1,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(18,3,'Cuti Tahunan','Hak cuti tahunan reguler karyawan (memotong kuota cuti tahunan)',0,NULL,12.0,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(19,3,'Istri Melahirkan',NULL,0,NULL,2.0,'per_event',0.0,'male',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(20,3,'Cuti Melahirkan',NULL,1,'Surat HPL / Keterangan Dokter Kandungan',90.0,'per_event',0.0,'female',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(21,3,'Kematian',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(22,3,'Sunatan',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(23,3,'Pernikahan Karyawan',NULL,0,NULL,3.0,'lifetime',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(24,3,'Pernikahan Anak',NULL,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(25,2,'Sakit dengan Surat Dokter','Pengajuan sakit dengan melampirkan surat dokter resmi',1,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30'),(26,2,'Sakit tanpa Surat','Pengajuan sakit ringan tanpa surat keterangan dokter',0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30'),(27,3,'Cuti Khusus','Cuti khusus berbayar sesuai ketentuan (melahirkan, pernikahan, kedukaan, dll)',0,NULL,NULL,'per_event',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30');
+INSERT INTO `permit_sub_types` VALUES (13,1,'Terlambat','Izin datang terlambat ke kantor',0,1,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(14,1,'Pulang Cepat','Izin pulang lebih cepat dari jam kerja resmi',0,1,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(15,1,'Dinas','Tugas / perjalanan dinas kantor di luar area kerja',0,0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(16,1,'Izin Tidak Masuk Kerja',NULL,0,0,NULL,NULL,'per_year',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(17,2,'Sakit','Pengajuan sakit (dengan surat dokter)',1,0,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(18,3,'Cuti Tahunan','Hak cuti tahunan reguler karyawan (memotong kuota cuti tahunan)',0,0,NULL,12.0,'per_year',0.0,'any',1,2,1,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(19,3,'Istri Melahirkan',NULL,0,0,NULL,2.0,'per_event',0.0,'male',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(20,3,'Cuti Melahirkan',NULL,1,0,'Surat HPL / Keterangan Dokter Kandungan',90.0,'per_event',0.0,'female',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(21,3,'Kematian',NULL,0,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(22,3,'Sunatan',NULL,0,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(23,3,'Pernikahan Karyawan',NULL,0,0,NULL,3.0,'lifetime',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(24,3,'Pernikahan Anak',NULL,0,0,NULL,2.0,'per_event',0.0,'any',1,2,0,'2026-09-23 15:32:24','2026-09-29 09:37:30'),(25,2,'Sakit dengan Surat Dokter','Pengajuan sakit dengan melampirkan surat dokter resmi',1,0,'Surat Keterangan Dokter',NULL,'per_year',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30'),(26,2,'Sakit tanpa Surat','Pengajuan sakit ringan tanpa surat keterangan dokter',0,0,NULL,NULL,'per_year',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30'),(27,3,'Cuti Khusus','Cuti khusus berbayar sesuai ketentuan (melahirkan, pernikahan, kedukaan, dll)',0,0,NULL,NULL,'per_event',0.0,'any',1,2,1,'2026-09-29 09:37:30','2026-09-29 09:37:30');
 /*!40000 ALTER TABLE `permit_sub_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -875,6 +876,7 @@ CREATE TABLE `permits` (
   `start_date` date NOT NULL,
   `end_date` date NOT NULL,
   `permit_time` time DEFAULT NULL,
+  `permit_end_time` time DEFAULT NULL,
   `description` text NOT NULL,
   `status` enum('pending_hrga','pending_pm','approved','rejected') DEFAULT 'pending_hrga',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -894,7 +896,7 @@ CREATE TABLE `permits` (
 
 LOCK TABLES `permits` WRITE;
 /*!40000 ALTER TABLE `permits` DISABLE KEYS */;
-INSERT INTO `permits` VALUES (2,2,3,18,'2026-09-15','2026-09-15',NULL,'Cuti tahunan acara keluarga','approved','2026-09-29 02:50:43','2026-09-29 02:50:43');
+INSERT INTO `permits` VALUES (2,2,3,18,'2026-09-15','2026-09-15',NULL,NULL,'Cuti tahunan acara keluarga','approved','2026-09-29 02:50:43','2026-09-29 02:50:43');
 /*!40000 ALTER TABLE `permits` ENABLE KEYS */;
 UNLOCK TABLES;
 

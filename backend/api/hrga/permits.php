@@ -74,7 +74,8 @@ if ($method === 'GET') {
                 COALESCE(up.name, u.email) as employee_name,
                 pt.code as permit_type_code, pt.name as permit_type_name, 
                 p.permit_sub_type_id, pst.name as permit_sub_type_name,
-                p.start_date, p.end_date, p.permit_time, p.description, p.status, p.created_at,
+                p.start_date, p.end_date, p.permit_time, p.permit_end_time, p.description, p.status, p.created_at,
+                pst.requires_time,
                 (SELECT COUNT(*) FROM permit_attachments WHERE permit_id = p.id) as has_attachment
                 FROM permits p
                 JOIN users u ON p.user_id = u.id
@@ -114,6 +115,7 @@ if ($method === 'GET') {
         $start_date = $_POST['start_date'] ?? null;
         $end_date = $_POST['end_date'] ?? null;
         $permit_time = !empty($_POST['permit_time']) ? trim($_POST['permit_time']) : null;
+        $permit_end_time = !empty($_POST['permit_end_time']) ? trim($_POST['permit_end_time']) : null;
         $description = $_POST['description'] ?? null;
 
         $errors = [];
@@ -131,7 +133,16 @@ if ($method === 'GET') {
             if (preg_match('/^(\d{1,2}):(\d{2})$/', $permit_time, $m)) {
                 $permit_time = str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2] . ':00';
             } elseif (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $permit_time)) {
-                sendError('Format jam tidak valid (harus HH:MM).', 400);
+                sendError('Format jam mulai tidak valid (harus HH:MM).', 400);
+            }
+        }
+
+        // Normalize permit_end_time if provided
+        if ($permit_end_time) {
+            if (preg_match('/^(\d{1,2}):(\d{2})$/', $permit_end_time, $m)) {
+                $permit_end_time = str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2] . ':00';
+            } elseif (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $permit_end_time)) {
+                sendError('Format jam selesai tidak valid (harus HH:MM).', 400);
             }
         }
 
@@ -161,10 +172,18 @@ if ($method === 'GET') {
                 sendError('Sub-tipe izin tidak valid atau tidak cocok dengan kategori yang dipilih.', 400);
             }
 
-            // Validasi wajib jam untuk Terlambat dan Pulang Cepat
-            $isTimeRequired = (stripos($subType['name'], 'Terlambat') !== false || stripos($subType['name'], 'Pulang Cepat') !== false);
-            if ($isTimeRequired && empty($permit_time)) {
-                sendError("Jam wajib diisi untuk permohonan '{$subType['name']}'.", 400);
+            // Validasi wajib jam untuk sub-izin dengan requires_time = 1 atau Terlambat & Pulang Cepat
+            $isTimeRequired = (!empty($subType['requires_time']) || stripos($subType['name'], 'Terlambat') !== false || stripos($subType['name'], 'Pulang Cepat') !== false);
+            if ($isTimeRequired) {
+                if (empty($permit_time)) {
+                    sendError("Jam mulai wajib diisi untuk permohonan '{$subType['name']}'.", 400);
+                }
+                if (empty($permit_end_time)) {
+                    sendError("Jam selesai wajib diisi untuk permohonan '{$subType['name']}'.", 400);
+                }
+                if ($permit_time && $permit_end_time && $permit_end_time <= $permit_time) {
+                    sendError("Jam selesai (" . substr($permit_end_time, 0, 5) . ") harus lebih besar dari jam mulai (" . substr($permit_time, 0, 5) . ").", 400);
+                }
             }
 
             // Validasi Gender Restriction
@@ -215,8 +234,8 @@ if ($method === 'GET') {
 
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("INSERT INTO permits (user_id, permit_type_id, permit_sub_type_id, start_date, end_date, permit_time, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_hrga')");
-        $stmt->execute([$user['id'], $permit_type_id, $permit_sub_type_id, $start_date, $end_date, $permit_time, $description]);
+        $stmt = $pdo->prepare("INSERT INTO permits (user_id, permit_type_id, permit_sub_type_id, start_date, end_date, permit_time, permit_end_time, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_hrga')");
+        $stmt->execute([$user['id'], $permit_type_id, $permit_sub_type_id, $start_date, $end_date, $permit_time, $permit_end_time, $description]);
         $permitId = $pdo->lastInsertId();
 
         if ($hasFile) {

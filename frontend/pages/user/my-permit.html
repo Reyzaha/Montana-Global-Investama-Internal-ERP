@@ -145,14 +145,26 @@
               <div class="form-text small text-muted" id="subTypeDetailHint"></div>
             </div>
 
-            <!-- Input Jam Khusus Izin Terlambat / Pulang Cepat -->
+            <!-- Input Jam Khusus Izin (Rentang 2 Jam: Mulai s/d Selesai) -->
             <div class="mb-3 d-none" id="permitTimeContainer">
-              <label class="form-label fw-semibold" id="permitTimeLabel">Jam Izin <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <span class="input-group-text bg-light text-primary"><i class="bi bi-clock-fill"></i></span>
-                <input type="time" class="form-control" id="permit_time" step="60">
+              <label class="form-label fw-semibold" id="permitTimeLabel"><i class="bi bi-clock-fill text-primary me-1"></i>Rentang Jam Izin <span class="text-danger">*</span></label>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label small text-muted mb-1" id="permitStartTimeLabel">Jam Mulai <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-primary"><i class="bi bi-clock"></i></span>
+                    <input type="time" class="form-control" id="permit_time" step="60">
+                  </div>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small text-muted mb-1" id="permitEndTimeLabel">Jam Selesai <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light text-primary"><i class="bi bi-clock-history"></i></span>
+                    <input type="time" class="form-control" id="permit_end_time" step="60">
+                  </div>
+                </div>
               </div>
-              <div class="form-text small text-muted" id="permitTimeHelpText">Tentukan jam perkiraan tiba terlambat atau jam rencana pulang cepat.</div>
+              <div class="form-text small text-muted mt-1" id="permitTimeHelpText">Tentukan rentang jam mulai sampai jam selesai izin (contoh: 15:00 s/d 17:00).</div>
             </div>
 
             <!-- Khusus Kategori Sakit: Tanpa jenis sakit rumit, opsi Surat Dokter vs Tanpa Surat Dokter -->

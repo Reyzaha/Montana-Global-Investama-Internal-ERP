@@ -23,8 +23,8 @@ try {
     $stmt = $pdo->prepare("
         SELECT p.id, p.user_id, u.email as employee_email, COALESCE(up.name, u.email) as employee_name,
                pt.name as permit_type_name, pt.code as permit_type_code,
-               p.permit_sub_type_id, pst.name as permit_sub_type_name,
-               p.start_date, p.end_date, p.permit_time, p.description, p.status, p.created_at
+               p.permit_sub_type_id, pst.name as permit_sub_type_name, pst.requires_time,
+               p.start_date, p.end_date, p.permit_time, p.permit_end_time, p.description, p.status, p.created_at
         FROM permits p
         JOIN users u ON p.user_id = u.id
         LEFT JOIN user_profiles up ON u.id = up.user_id

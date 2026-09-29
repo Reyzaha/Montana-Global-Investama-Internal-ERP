@@ -61,8 +61,13 @@ try {
             up.position AS employee_position,
             pt.id AS permit_type_id,
             pt.name AS permit_type_name,
+            p.permit_sub_type_id,
+            pst.name AS permit_sub_type_name,
+            pst.requires_time,
             p.start_date,
             p.end_date,
+            p.permit_time,
+            p.permit_end_time,
             p.description,
             p.status,
             p.created_at,
@@ -84,6 +89,7 @@ try {
         JOIN users u ON p.user_id = u.id
         LEFT JOIN user_profiles up ON u.id = up.user_id
         JOIN permit_types pt ON p.permit_type_id = pt.id
+        LEFT JOIN permit_sub_types pst ON p.permit_sub_type_id = pst.id
         $whereClause
         ORDER BY 
             CASE WHEN p.status = 'pending_pm' THEN 1 ELSE 2 END,

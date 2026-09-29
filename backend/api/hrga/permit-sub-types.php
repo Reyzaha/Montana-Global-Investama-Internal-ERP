@@ -48,6 +48,7 @@ if ($method === 'GET') {
                 pst.description,
                 pst.requires_attachment,
                 pst.attachment_label,
+                pst.requires_time,
                 pst.quota_days,
                 pst.quota_period,
                 pst.carry_over_max_days,
@@ -85,6 +86,7 @@ if ($method === 'GET') {
             $description = trim($input['description'] ?? '');
             $requiresAttachment = !empty($input['requires_attachment']) ? 1 : 0;
             $attachmentLabel = trim($input['attachment_label'] ?? '');
+            $requiresTime = !empty($input['requires_time']) ? 1 : 0;
             $quotaDays = isset($input['quota_days']) && $input['quota_days'] !== '' ? (float)$input['quota_days'] : null;
             $quotaPeriod = trim($input['quota_period'] ?? 'per_year');
             $carryOverMaxDays = isset($input['carry_over_max_days']) ? (float)$input['carry_over_max_days'] : 0.0;
@@ -108,16 +110,19 @@ if ($method === 'GET') {
                 $stmtInsert = $pdo->prepare("
                     INSERT INTO `permit_sub_types` (
                         `category_id`, `name`, `description`, `requires_attachment`, `attachment_label`,
+                        `requires_time`,
                         `quota_days`, `quota_period`, `carry_over_max_days`, `gender_restriction`,
                         `is_paid`, `requires_approval_step`, `is_active`
                     ) VALUES (
                         ?, ?, ?, ?, ?,
+                        ?,
                         ?, ?, ?, ?,
                         ?, ?, 1
                     )
                 ");
                 $stmtInsert->execute([
                     $categoryId, $name, $description, $requiresAttachment, $attachmentLabel,
+                    $requiresTime,
                     $quotaDays, $quotaPeriod, $carryOverMaxDays, $genderRestriction,
                     $isPaid, $approvalStep
                 ]);
@@ -144,6 +149,7 @@ if ($method === 'GET') {
                         `description` = ?,
                         `requires_attachment` = ?,
                         `attachment_label` = ?,
+                        `requires_time` = ?,
                         `quota_days` = ?,
                         `quota_period` = ?,
                         `carry_over_max_days` = ?,
@@ -154,6 +160,7 @@ if ($method === 'GET') {
                 ");
                 $stmtUpdate->execute([
                     $categoryId, $name, $description, $requiresAttachment, $attachmentLabel,
+                    $requiresTime,
                     $quotaDays, $quotaPeriod, $carryOverMaxDays, $genderRestriction,
                     $isPaid, $approvalStep, $id
                 ]);

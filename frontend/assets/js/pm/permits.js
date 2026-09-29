@@ -116,7 +116,9 @@ function renderPermitTable(items) {
         let typeText = escapeHtml(p.permit_type_name);
         if (p.permit_sub_type_name) {
             let subText = p.permit_sub_type_name;
-            if (p.permit_time) {
+            if (p.permit_time && p.permit_end_time) {
+                subText += ` - Pkl ${p.permit_time.substring(0, 5)} s/d ${p.permit_end_time.substring(0, 5)} WIB`;
+            } else if (p.permit_time) {
                 subText += ` - Pkl ${p.permit_time.substring(0, 5)} WIB`;
             }
             typeText += ` <small class="text-primary fw-normal d-block">(${escapeHtml(subText)})</small>`;
@@ -232,7 +234,14 @@ async function viewPermitDetail(id) {
         }
 
         let timeRowHtml = '';
-        if (p.permit_time) {
+        if (p.permit_time && p.permit_end_time) {
+            timeRowHtml = `
+                <div class="col-md-6">
+                    <label class="small text-muted text-uppercase fw-bold">Rentang Jam Izin</label>
+                    <div class="fw-bold text-primary fs-6"><i class="bi bi-clock-fill me-1"></i>Pkl ${p.permit_time.substring(0, 5)} s/d ${p.permit_end_time.substring(0, 5)} WIB</div>
+                </div>
+            `;
+        } else if (p.permit_time) {
             timeRowHtml = `
                 <div class="col-md-6">
                     <label class="small text-muted text-uppercase fw-bold">Jam Terlambat / Pulang Cepat</label>

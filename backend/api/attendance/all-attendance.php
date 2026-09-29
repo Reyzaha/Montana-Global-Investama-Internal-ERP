@@ -134,6 +134,7 @@ try {
             p.start_date,
             p.end_date,
             p.permit_time,
+            p.permit_end_time,
             p.description,
             p.status as permit_status,
             pt.code as category_code,
@@ -162,7 +163,12 @@ try {
 
         $catName = $p['category_name'];
         $subName = !empty($p['sub_type_name']) ? $p['sub_type_name'] : $catName;
-        $timeStr = !empty($p['permit_time']) ? " (Pkl " . substr($p['permit_time'], 0, 5) . ")" : "";
+        $timeStr = "";
+        if (!empty($p['permit_time']) && !empty($p['permit_end_time'])) {
+            $timeStr = " (Pkl " . substr($p['permit_time'], 0, 5) . " - " . substr($p['permit_end_time'], 0, 5) . " WIB)";
+        } elseif (!empty($p['permit_time'])) {
+            $timeStr = " (Pkl " . substr($p['permit_time'], 0, 5) . " WIB)";
+        }
         $noDocStr = (strtolower($p['category_code']) === 'sakit' && (int)$p['has_attachment'] === 0) ? " [Tanpa Surat Dokter]" : "";
         $reason = !empty($p['description']) ? " - Alasan: {$p['description']}" : "";
         $noteText = "[{$catName}: {$subName}{$timeStr}{$noDocStr}] Disetujui OM & HR{$reason}";
@@ -179,6 +185,7 @@ try {
                 $attendances[$targetIdx]['permit_category_name'] = $catName;
                 $attendances[$targetIdx]['permit_sub_type_name'] = $subName;
                 $attendances[$targetIdx]['permit_time'] = $p['permit_time'];
+                $attendances[$targetIdx]['permit_end_time'] = $p['permit_end_time'];
                 $attendances[$targetIdx]['permit_description'] = $p['description'];
                 $attendances[$targetIdx]['has_approved_permit'] = true;
                 $attendances[$targetIdx]['has_attachment'] = (int)$p['has_attachment'] > 0;
@@ -211,6 +218,7 @@ try {
                     'permit_category_name' => $catName,
                     'permit_sub_type_name' => $subName,
                     'permit_time' => $p['permit_time'],
+                    'permit_end_time' => $p['permit_end_time'],
                     'permit_description' => $p['description'],
                     'has_approved_permit' => true,
                     'has_attachment' => (int)$p['has_attachment'] > 0,

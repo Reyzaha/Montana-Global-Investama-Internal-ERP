@@ -116,7 +116,9 @@ function renderPermits(data) {
         let typeDisplay = `<span class="fw-semibold text-dark">${p.permit_type_name}</span>`;
         if (p.permit_sub_type_name) {
             let subText = p.permit_sub_type_name;
-            if (p.permit_time) {
+            if (p.permit_time && p.permit_end_time) {
+                subText += ` - Pkl ${p.permit_time.substring(0, 5)} s/d ${p.permit_end_time.substring(0, 5)} WIB`;
+            } else if (p.permit_time) {
                 subText += ` - Pkl ${p.permit_time.substring(0, 5)} WIB`;
             }
             typeDisplay += ` <small class="text-primary fw-normal d-block">(${subText})</small>`;
@@ -217,7 +219,16 @@ async function viewPermit(id) {
         }
 
         let timeRowHtml = '';
-        if (p.permit_time) {
+        if (p.permit_time && p.permit_end_time) {
+            const startFmt = p.permit_time.substring(0, 5);
+            const endFmt = p.permit_end_time.substring(0, 5);
+            timeRowHtml = `
+                <div class="col-md-6">
+                    <div class="small text-muted text-uppercase fw-bold mb-1">Rentang Jam Izin</div>
+                    <div class="fw-bold text-primary"><i class="bi bi-clock-fill me-1"></i>Pkl ${startFmt} s/d ${endFmt} WIB</div>
+                </div>
+            `;
+        } else if (p.permit_time) {
             const timeFormatted = p.permit_time.substring(0, 5);
             timeRowHtml = `
                 <div class="col-md-6">
@@ -611,6 +622,11 @@ function renderSubTypes(items) {
             attText = `<span class="badge bg-danger-subtle text-danger border border-danger" title="${item.attachment_label || 'Wajib'}"><i class="bi bi-paperclip me-1"></i>Wajib</span>`;
         }
 
+        let timeText = '<span class="badge bg-light text-muted border">-</span>';
+        if (parseInt(item.requires_time) === 1) {
+            timeText = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-clock-fill me-1"></i>2 Jam (Mulai-Selesai)</span>`;
+        }
+
         let genderBadge = '<span class="badge bg-light text-dark border">Semua</span>';
         if (item.gender_restriction === 'female') {
             genderBadge = `<span class="badge bg-pink text-dark border" style="background-color: #fce4ec;"><i class="bi bi-gender-female me-1"></i>Perempuan</span>`;
@@ -637,6 +653,7 @@ function renderSubTypes(items) {
             <td><span class="badge ${catBadge}">${item.category_name}</span></td>
             <td><small class="fw-semibold">${quotaText}</small></td>
             <td>${attText}</td>
+            <td>${timeText}</td>
             <td>${genderBadge}</td>
             <td>${isPaidBadge}</td>
             <td>${activeSwitch}</td>
@@ -658,6 +675,7 @@ window.openCreateSubTypeModal = function() {
     document.getElementById('subTypeId').value = '';
     document.getElementById('formSubType').reset();
     document.getElementById('subRequiresAttachment').checked = false;
+    document.getElementById('subRequiresTime').checked = false;
     modalSubType.show();
 };
 
@@ -676,6 +694,7 @@ window.openEditSubTypeModal = function(id) {
     document.getElementById('subIsPaid').value = item.is_paid;
     document.getElementById('subRequiresAttachment').checked = (parseInt(item.requires_attachment) === 1);
     document.getElementById('subAttachmentLabel').value = item.attachment_label || '';
+    document.getElementById('subRequiresTime').checked = (parseInt(item.requires_time) === 1);
 
     modalSubType.show();
 };
@@ -703,7 +722,8 @@ function setupSubTypeFormHandler() {
             gender_restriction: document.getElementById('subGenderRestriction').value,
             is_paid: parseInt(document.getElementById('subIsPaid').value),
             requires_attachment: document.getElementById('subRequiresAttachment').checked ? 1 : 0,
-            attachment_label: document.getElementById('subAttachmentLabel').value.trim()
+            attachment_label: document.getElementById('subAttachmentLabel').value.trim(),
+            requires_time: document.getElementById('subRequiresTime').checked ? 1 : 0
         };
 
         try {

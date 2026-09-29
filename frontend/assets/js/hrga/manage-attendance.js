@@ -256,7 +256,9 @@ function applyLocalFilter() {
         if (item.has_approved_permit) {
             const catName = item.permit_category_name || (st === 'cuti' ? 'Cuti' : (st === 'sakit' ? 'Sakit' : 'Izin'));
             let subName = item.permit_sub_type_name || catName;
-            if (item.permit_time) {
+            if (item.permit_time && item.permit_end_time) {
+                subName += ` (Pkl ${item.permit_time.substring(0, 5)} - ${item.permit_end_time.substring(0, 5)} WIB)`;
+            } else if (item.permit_time) {
                 subName += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
             }
 
@@ -415,7 +417,9 @@ function exportCsv() {
         if (item.has_approved_permit) {
             const cat = item.permit_category_name || (st === 'sakit' ? 'Sakit' : (st === 'cuti' ? 'Cuti' : 'Izin'));
             let sub = item.permit_sub_type_name || cat;
-            if (item.permit_time) {
+            if (item.permit_time && item.permit_end_time) {
+                sub += ` (Pkl ${item.permit_time.substring(0, 5)} - ${item.permit_end_time.substring(0, 5)} WIB)`;
+            } else if (item.permit_time) {
                 sub += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
             }
             if (st === 'sakit' || cat.toLowerCase().includes('sakit')) {
@@ -612,7 +616,9 @@ function exportPdf() {
 
                 let lateIzinStatus = 'Tanpa Izin Terlambat';
                 if (item.has_approved_permit && sub.includes('terlambat')) {
-                    const timePkl = item.permit_time ? ` (Pkl ${item.permit_time.substring(0, 5)} WIB)` : '';
+                    const timePkl = (item.permit_time && item.permit_end_time)
+                        ? ` (Pkl ${item.permit_time.substring(0, 5)} - ${item.permit_end_time.substring(0, 5)} WIB)`
+                        : (item.permit_time ? ` (Pkl ${item.permit_time.substring(0, 5)} WIB)` : '');
                     lateIzinStatus = `Izin Disetujui${timePkl}`;
                 } else if (item.has_approved_permit) {
                     lateIzinStatus = `Izin Khusus (${item.permit_sub_type_name || item.permit_category_name})`;
@@ -635,7 +641,9 @@ function exportPdf() {
             if (item.has_approved_permit || ['cuti', 'izin', 'sakit'].includes(st)) {
                 let catName = item.permit_category_name || (st === 'cuti' ? 'Cuti' : (st === 'sakit' ? 'Sakit' : 'Izin'));
                 let subName = item.permit_sub_type_name || catName;
-                if (item.permit_time) {
+                if (item.permit_time && item.permit_end_time) {
+                    subName += ` (Pkl ${item.permit_time.substring(0, 5)} - ${item.permit_end_time.substring(0, 5)} WIB)`;
+                } else if (item.permit_time) {
                     subName += ` (Pkl ${item.permit_time.substring(0, 5)} WIB)`;
                 }
 
@@ -1111,7 +1119,9 @@ function exportPdf() {
                 if (r.has_approved_permit) {
                     const cat = r.permit_category_name || (st === 'sakit' ? 'Sakit' : (st === 'cuti' ? 'Cuti' : 'Izin'));
                     let sub = r.permit_sub_type_name || cat;
-                    if (r.permit_time) {
+                    if (r.permit_time && r.permit_end_time) {
+                        sub += ` (Pkl ${r.permit_time.substring(0, 5)} - ${r.permit_end_time.substring(0, 5)} WIB)`;
+                    } else if (r.permit_time) {
                         sub += ` (Pkl ${r.permit_time.substring(0, 5)} WIB)`;
                     }
                     let docBadge = '';

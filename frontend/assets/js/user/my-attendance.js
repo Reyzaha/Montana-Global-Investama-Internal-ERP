@@ -3,6 +3,8 @@ let currentLat = null;
 let currentLng = null;
 let currentAccuracy = null;
 let locationStatusText = "";
+let currentAttendanceList = [];
+let currentEmployeeInfo = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     currentUser = await checkAuth();
@@ -99,11 +101,13 @@ async function loadMyAttendance() {
             } else if (res.data && typeof res.data === 'object') {
                 list = res.data.history || [];
                 todayRecord = res.data.today || null;
+                currentEmployeeInfo = res.data.employee || null;
                 if (!todayRecord && res.data.server_date) {
                     todayRecord = list.find(item => item.date === res.data.server_date) || null;
                 }
             }
 
+            currentAttendanceList = list;
             console.log("Today attendance record:", todayRecord);
 
             // Update Today Badges & Button States
@@ -119,9 +123,39 @@ async function loadMyAttendance() {
                 const tr = document.createElement('tr');
                 
                 let badgeClass = 'bg-secondary';
-                if (item.status === 'on_time') badgeClass = 'bg-success';
-                if (item.status === 'late') badgeClass = 'bg-warning text-dark';
-                if (item.status === 'absent') badgeClass = 'bg-danger';
+                let statusLabel = (item.status || 'pending').replace('_', ' ').toUpperCase();
+
+                if (item.status === 'on_time') {
+                    badgeClass = 'bg-success';
+                    statusLabel = 'HADIR TEPAT WAKTU';
+                } else if (item.status === 'late') {
+                    badgeClass = 'bg-warning text-dark';
+                    statusLabel = 'TERLAMBAT';
+                } else if (item.status === 'absent') {
+                    badgeClass = 'bg-danger';
+                    statusLabel = 'ALPHA / ABSEN';
+                } else if (item.status === 'izin') {
+                    badgeClass = 'bg-info text-dark';
+                    statusLabel = 'IZIN';
+                } else if (item.status === 'cuti') {
+                    badgeClass = 'bg-primary';
+                    statusLabel = 'CUTI';
+                } else if (item.status === 'sakit') {
+                    badgeClass = 'bg-warning-subtle text-dark border border-warning';
+                    statusLabel = 'SAKIT';
+                }
+
+                let subText = '';
+                if (item.has_approved_permit) {
+                    const subName = item.permit_sub_type_name || item.permit_category_name || '';
+                    let timePkl = '';
+                    if (item.permit_time && item.permit_end_time) {
+                        timePkl = ` (Pkl ${item.permit_time.substring(0, 5)} - ${item.permit_end_time.substring(0, 5)})`;
+                    } else if (item.permit_time) {
+                        timePkl = ` (Pkl ${item.permit_time.substring(0, 5)})`;
+                    }
+                    subText = `<div class="small text-primary fw-semibold mt-1"><i class="bi bi-info-circle me-1"></i>${subName}${timePkl}</div>`;
+                }
 
                 tr.innerHTML = `
                     <td class="ps-3 fw-semibold">${item.date}</td>
@@ -129,7 +163,10 @@ async function loadMyAttendance() {
                     <td>${item.break_start ? item.break_start : '-'}</td>
                     <td>${item.break_end ? item.break_end : '-'}</td>
                     <td>${item.check_out ? item.check_out : '-'}</td>
-                    <td><span class="badge ${badgeClass}">${(item.status || 'pending').replace('_', ' ').toUpperCase()}</span></td>
+                    <td>
+                        <span class="badge ${badgeClass}">${statusLabel}</span>
+                        ${subText}
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -430,4 +467,400 @@ function setupOvertimeForm() {
         }
     });
 }
+
+/**
+ * Export My Attendance Recap to Professional PDF using jsPDF & AutoTable
+ */
+window.exportMyAttendancePdf = function() {
+    if (!currentAttendanceList || currentAttendanceList.length === 0) {
+        showToast('Tidak ada data riwayat presensi untuk diekspor.', 'warning');
+        return;
+    }
+
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('Modul PDF (jsPDF) sedang dimuat. Silakan tunggu beberapa detik dan coba lagi.', 'warning');
+        return;
+    }
+
+    const btnExport = document.getElementById('btnExportMyAttendancePdf');
+    const oldBtnHtml = btnExport ? btnExport.innerHTML : '';
+    if (btnExport) {
+        btnExport.disabled = true;
+        btnExport.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyiapkan PDF...';
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4'); // Portrait A4
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 14;
+
+        // Determine employee metadata
+        const emp = currentEmployeeInfo || currentUser || {};
+        const empName = emp.name || emp.username || emp.email || 'Karyawan MGI';
+        const empEmail = emp.email || '-';
+        const empPosition = emp.position || emp.role_name || 'Staff Pegawai';
+
+        // Sort data chronologically descending for display
+        const records = [...currentAttendanceList].sort((a, b) => (a.date < b.date ? 1 : -1));
+        const dates = records.map(r => r.date).filter(Boolean).sort();
+        const earliestDate = dates.length > 0 ? dates[0] : '';
+        const latestDate = dates.length > 0 ? dates[dates.length - 1] : '';
+
+        // Helper date format in Indonesian
+        function formatIndoDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const d = new Date(dateStr + 'T00:00:00');
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // Helper calculate work duration
+        function calcWorkDuration(checkIn, checkOut, breakStart, breakEnd) {
+            if (!checkIn || !checkOut) return '-';
+            const parseTime = (t) => {
+                const parts = t.split(':');
+                return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            };
+            const inMins = parseTime(checkIn);
+            const outMins = parseTime(checkOut);
+            let totalMins = Math.max(0, outMins - inMins);
+
+            if (breakStart && breakEnd) {
+                const bsMins = parseTime(breakStart);
+                const beMins = parseTime(breakEnd);
+                if (beMins > bsMins) {
+                    totalMins = Math.max(0, totalMins - (beMins - bsMins));
+                }
+            }
+
+            const h = Math.floor(totalMins / 60);
+            const m = totalMins % 60;
+            return `${h} Jam ${m > 0 ? m + ' Mnt' : ''}`.trim();
+        }
+
+        // Calculate statistics
+        let countHadir = 0;
+        let countOnTime = 0;
+        let countLate = 0;
+        let countPermit = 0;
+        let countAbsent = 0;
+
+        records.forEach(r => {
+            const st = (r.status || '').toLowerCase();
+            if (r.check_in) countHadir++;
+            if (st === 'on_time') countOnTime++;
+            else if (st === 'late') countLate++;
+            else if (st === 'absent') countAbsent++;
+
+            if (r.has_approved_permit || ['izin', 'cuti', 'sakit'].includes(st)) {
+                countPermit++;
+            }
+        });
+
+        const totalRecords = records.length;
+        const onTimePct = countHadir > 0 ? Math.round((countOnTime / countHadir) * 100) : 0;
+        const latePct = countHadir > 0 ? Math.round((countLate / countHadir) * 100) : 0;
+
+        let currentY = 16;
+
+        // 1. KOP SURAT PERUSAHAAN (COMPANY HEADER)
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(30, 58, 138); // Navy
+        doc.text("PT MONTANA GLOBAL INVESTAMA", margin, currentY);
+
+        currentY += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139); // Slate Gray
+        doc.text("Internal ERP & HRIS Management System - Employee Self Service (Rekap Presensi Karyawan)", margin, currentY);
+
+        currentY += 4;
+        doc.setDrawColor(30, 58, 138);
+        doc.setLineWidth(1.2);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+
+        currentY += 1.5;
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.4);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+
+        currentY += 7.5;
+
+        // 2. JUDUL DOKUMEN & SUBTITLE
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42); // Slate dark
+        doc.text("LAPORAN REKAPITULASI PRESENSI PRIBADI (MY ATTENDANCE)", pageWidth / 2, currentY, { align: "center" });
+
+        currentY += 5.5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        const periodText = earliestDate && latestDate ? `Periode: ${formatIndoDate(earliestDate)} s/d ${formatIndoDate(latestDate)} (31 Hari Terakhir)` : 'Periode 31 Hari Terakhir';
+        doc.text(periodText, pageWidth / 2, currentY, { align: "center" });
+
+        currentY += 6;
+
+        // 3. KOTAK INFORMASI PEGAWAI (EMPLOYEE INFO CARD)
+        const infoCardHeight = 16;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(margin, currentY, pageWidth - (margin * 2), infoCardHeight, 1.5, 1.5, 'FD');
+
+        const col1X = margin + 4;
+        const col2X = margin + ((pageWidth - (margin * 2)) / 2) + 4;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text("Nama Karyawan :", col1X, currentY + 5.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(15, 23, 42);
+        doc.text(empName, col1X + 26, currentY + 5.5);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("Jabatan / Posisi :", col1X, currentY + 11.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(15, 23, 42);
+        doc.text(empPosition, col1X + 26, currentY + 11.5);
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("Email Karyawan :", col2X, currentY + 5.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(15, 23, 42);
+        doc.text(empEmail, col2X + 26, currentY + 5.5);
+
+        const nowFormatted = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' WIB';
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("Waktu Cetak :", col2X, currentY + 11.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(51, 65, 85);
+        doc.text(nowFormatted, col2X + 26, currentY + 11.5);
+
+        currentY += infoCardHeight + 5;
+
+        // 4. SUMMARY METRIC BOXES (4 KPI CARDS)
+        const boxGap = 3;
+        const boxCount = 4;
+        const totalBoxWidth = pageWidth - (margin * 2) - (boxGap * (boxCount - 1));
+        const boxWidth = totalBoxWidth / boxCount;
+        const boxHeight = 14;
+
+        // Box 1: Total Hari
+        doc.setFillColor(239, 246, 255);
+        doc.setDrawColor(191, 219, 254);
+        doc.roundedRect(margin, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(30, 64, 175);
+        doc.text("TOTAL REKAP", margin + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${totalRecords} Hari`, margin + 3, currentY + 11);
+
+        // Box 2: Tepat Waktu
+        const b2X = margin + boxWidth + boxGap;
+        doc.setFillColor(240, 253, 244);
+        doc.setDrawColor(187, 247, 208);
+        doc.roundedRect(b2X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(22, 101, 52);
+        doc.text("TEPAT WAKTU", b2X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${countOnTime} (${onTimePct}%)`, b2X + 3, currentY + 11);
+
+        // Box 3: Terlambat
+        const b3X = b2X + boxWidth + boxGap;
+        doc.setFillColor(254, 252, 232);
+        doc.setDrawColor(254, 240, 138);
+        doc.roundedRect(b3X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(161, 98, 7);
+        doc.text("TERLAMBAT", b3X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${countLate} (${latePct}%)`, b3X + 3, currentY + 11);
+
+        // Box 4: Izin/Cuti/Sakit
+        const b4X = b3X + boxWidth + boxGap;
+        doc.setFillColor(243, 244, 246);
+        doc.setDrawColor(229, 231, 235);
+        doc.roundedRect(b4X, currentY, boxWidth, boxHeight, 1.2, 1.2, 'FD');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(75, 85, 99);
+        doc.text("IZIN/CUTI/SAKIT", b4X + 3, currentY + 4.5);
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${countPermit} Hari`, b4X + 3, currentY + 11);
+
+        currentY += boxHeight + 7;
+
+        // 5. TABEL RINCIAN KEHADIRAN (AUTOTABLE)
+        const tableData = records.map((r, idx) => {
+            const dateFmt = formatIndoDate(r.date);
+            const inTime = r.check_in ? r.check_in.substring(0, 5) : '-';
+            const brkStart = r.break_start ? r.break_start.substring(0, 5) : '-';
+            const brkEnd = r.break_end ? r.break_end.substring(0, 5) : '-';
+            const breakTime = (brkStart !== '-' || brkEnd !== '-') ? `${brkStart} - ${brkEnd}` : '-';
+            const outTime = r.check_out ? r.check_out.substring(0, 5) : '-';
+            const workDur = calcWorkDuration(r.check_in, r.check_out, r.break_start, r.break_end);
+
+            let statusText = (r.status || '-').toUpperCase();
+            if (r.status === 'on_time') statusText = 'HADIR TEPAT WAKTU';
+            if (r.status === 'late') statusText = 'TERLAMBAT';
+            if (r.status === 'absent') statusText = 'ALPHA';
+
+            if (r.has_approved_permit) {
+                const sub = r.permit_sub_type_name || r.permit_category_name || '';
+                let timeStr = '';
+                if (r.permit_time && r.permit_end_time) {
+                    timeStr = ` (Pkl ${r.permit_time.substring(0, 5)} - ${r.permit_end_time.substring(0, 5)} WIB)`;
+                } else if (r.permit_time) {
+                    timeStr = ` (Pkl ${r.permit_time.substring(0, 5)} WIB)`;
+                }
+                statusText = `${statusText} - [${sub}${timeStr}]`;
+            }
+
+            return [
+                idx + 1,
+                dateFmt,
+                inTime,
+                breakTime,
+                outTime,
+                workDur,
+                statusText
+            ];
+        });
+
+        doc.autoTable({
+            startY: currentY,
+            margin: { left: margin, right: margin },
+            head: [['No', 'Hari & Tanggal', 'Masuk', 'Istirahat', 'Pulang', 'Jam Kerja', 'Status / Keterangan Presensi']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [30, 58, 138],
+                textColor: [255, 255, 255],
+                fontSize: 8,
+                fontStyle: 'bold',
+                halign: 'center',
+                valign: 'middle',
+                cellPadding: 2.2
+            },
+            bodyStyles: {
+                fontSize: 7.5,
+                textColor: [30, 41, 59],
+                valign: 'middle',
+                cellPadding: 2
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
+            },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 9 },
+                1: { cellWidth: 34 },
+                2: { halign: 'center', cellWidth: 17 },
+                3: { halign: 'center', cellWidth: 24 },
+                4: { halign: 'center', cellWidth: 17 },
+                5: { halign: 'center', cellWidth: 20 },
+                6: { cellWidth: 'auto' }
+            },
+            didParseCell: function(data) {
+                if (data.section === 'body' && data.column.index === 6) {
+                    const text = data.cell.raw || '';
+                    if (text.includes('TEPAT WAKTU')) {
+                        data.cell.styles.textColor = [22, 101, 52]; // Green
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (text.includes('TERLAMBAT')) {
+                        data.cell.styles.textColor = [161, 98, 7]; // Amber
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (text.includes('ALPHA') || text.includes('ABSEN')) {
+                        data.cell.styles.textColor = [185, 28, 28]; // Red
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (text.includes('IZIN') || text.includes('CUTI') || text.includes('SAKIT')) {
+                        data.cell.styles.textColor = [30, 64, 175]; // Blue
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+            }
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 10;
+
+        // Check if there is enough space for signatures on the same page
+        if (finalY + 45 > pageHeight - 15) {
+            doc.addPage();
+            finalY = 20;
+        }
+
+        // 6. LEMBAR PENGESAHAN / SIGNATURE
+        const sigWidth = 70;
+        const leftSigX = margin + 10;
+        const rightSigX = pageWidth - margin - sigWidth - 10;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+
+        // Left: Karyawan
+        doc.text("Karyawan yang bersangkutan,", leftSigX, finalY);
+        doc.text("( Ditandatangani secara digital )", leftSigX, finalY + 18);
+        doc.setFont("helvetica", "bold");
+        doc.text(empName, leftSigX, finalY + 23);
+        doc.setFont("helvetica", "normal");
+        doc.text(empPosition, leftSigX, finalY + 27);
+
+        // Right: HRGA / PM
+        doc.text("Mengetahui & Menyetujui,", rightSigX, finalY);
+        doc.text("Divisi HRGA / Manajemen", rightSigX, finalY + 4);
+        doc.text("( ..................................................... )", rightSigX, finalY + 23);
+        doc.text("Tanggal: .......................................", rightSigX, finalY + 27);
+
+        // 7. FOOTER & PAGE NUMBERING
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.3);
+            doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
+
+            doc.text("Dokumen ini dihasilkan secara otomatis oleh Sistem ERP PT Montana Global Investama.", margin, pageHeight - 6.5);
+            doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, pageHeight - 6.5, { align: "right" });
+        }
+
+        // Save PDF
+        const cleanEmpName = empName.replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `Rekap_Presensi_${cleanEmpName}_${getTodayString()}.pdf`;
+        doc.save(fileName);
+
+        showToast('Rekap presensi berhasil diekspor ke PDF.', 'success');
+    } catch (err) {
+        console.error("Gagal export PDF my attendance:", err);
+        showToast('Gagal mengekspor PDF presensi: ' + err.message, 'danger');
+    } finally {
+        if (btnExport) {
+            btnExport.disabled = false;
+            btnExport.innerHTML = oldBtnHtml;
+        }
+    }
+};
 

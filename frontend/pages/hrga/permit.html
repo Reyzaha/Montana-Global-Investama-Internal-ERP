@@ -236,6 +236,7 @@
                         <th>Label Utama Induk</th>
                         <th>Kuota & Periode</th>
                         <th>Lampiran Berkas</th>
+                        <th>Input Jam</th>
                         <th>Batasan Gender</th>
                         <th>Pembayaran Gaji</th>
                         <th>Status</th>
@@ -244,7 +245,7 @@
                     </thead>
                     <tbody id="subTypeTableBody">
                       <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                           <div class="spinner-border spinner-border-sm me-2"></div> Memuat sub-jenis izin...
                         </td>
                       </tr>
@@ -400,6 +401,19 @@
               <div id="subAttachmentGroup">
                 <label class="form-label small text-muted">Label / Nama Dokumen yang Diminta:</label>
                 <input type="text" class="form-control form-control-sm" id="subAttachmentLabel" placeholder="Contoh: Surat Keterangan Rawat Inap / Surat Dokter">
+              </div>
+            </div>
+
+            <!-- Opsi Perlu Input Jam (2 Jam: Mulai s/d Selesai) -->
+            <div class="p-3 bg-light rounded-3 border mb-3">
+              <div class="form-check form-switch mb-1">
+                <input class="form-check-input" type="checkbox" id="subRequiresTime">
+                <label class="form-check-label fw-semibold" for="subRequiresTime">
+                  <i class="bi bi-clock-history text-primary me-1"></i> Perlu Input Jam (Jam Mulai s/d Jam Selesai)
+                </label>
+              </div>
+              <div class="form-text small text-muted">
+                Centang ini jika pengajuan sub-izin ini (seperti <strong>Izin Pulang Cepat</strong> atau <strong>Izin Terlambat</strong>) memerlukan input 2 waktu (jam mulai dan jam selesai).
               </div>
             </div>
           </div>

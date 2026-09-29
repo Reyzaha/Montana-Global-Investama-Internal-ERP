@@ -109,6 +109,11 @@ function renderSubPermitTable(items) {
             attText = `<span class="badge bg-danger-subtle text-danger border border-danger" title="${item.attachment_label || 'Wajib'}"><i class="bi bi-paperclip me-1"></i>Wajib</span>`;
         }
 
+        let timeText = '<span class="badge bg-light text-muted border">-</span>';
+        if (parseInt(item.requires_time) === 1) {
+            timeText = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-clock-fill me-1"></i>2 Jam (Mulai-Selesai)</span>`;
+        }
+
         let genderBadge = '<span class="badge bg-light text-dark border">Semua</span>';
         if (item.gender_restriction === 'female') {
             genderBadge = `<span class="badge bg-pink text-dark border" style="background-color: #fce4ec;"><i class="bi bi-gender-female me-1"></i>Perempuan</span>`;
@@ -135,6 +140,7 @@ function renderSubPermitTable(items) {
             <td><span class="badge ${catBadge}">${item.category_name}</span></td>
             <td><small class="fw-semibold">${quotaText}</small></td>
             <td>${attText}</td>
+            <td>${timeText}</td>
             <td>${genderBadge}</td>
             <td>${isPaidBadge}</td>
             <td>${activeSwitch}</td>
@@ -162,6 +168,7 @@ window.openCreateModal = function() {
     document.getElementById('formSubPermit').reset();
     document.getElementById('subCategoryId').value = '1';
     document.getElementById('subRequiresAttachment').checked = false;
+    document.getElementById('subRequiresTime').checked = false;
 };
 
 window.openEditModal = function(id) {
@@ -179,6 +186,7 @@ window.openEditModal = function(id) {
     document.getElementById('subIsPaid').value = item.is_paid;
     document.getElementById('subRequiresAttachment').checked = (parseInt(item.requires_attachment) === 1);
     document.getElementById('subAttachmentLabel').value = item.attachment_label || '';
+    document.getElementById('subRequiresTime').checked = (parseInt(item.requires_time) === 1);
 
     const modal = new bootstrap.Modal(document.getElementById('modalSubPermit'));
     modal.show();
@@ -207,7 +215,8 @@ function setupFormHandler() {
             gender_restriction: document.getElementById('subGenderRestriction').value,
             is_paid: parseInt(document.getElementById('subIsPaid').value),
             requires_attachment: document.getElementById('subRequiresAttachment').checked ? 1 : 0,
-            attachment_label: document.getElementById('subAttachmentLabel').value.trim()
+            attachment_label: document.getElementById('subAttachmentLabel').value.trim(),
+            requires_time: document.getElementById('subRequiresTime').checked ? 1 : 0
         };
 
         try {
