@@ -20,26 +20,27 @@ if (!in_array('mgi_erp', $databases)) {
     }
 }
 
-$pdo->exec("USE `mgi_erp`");
+try {
+    $pdo->exec("USE `mgi_erp`");
+} catch (Exception $e) {
+    echo "• Note: Could not switch to 'mgi_erp': " . $e->getMessage() . "\n";
+    try {
+        $pdo->exec("USE `mgi_landing`");
+    } catch (Exception $e2) {}
+}
+
 $activeDb = $pdo->query("SELECT DATABASE()")->fetchColumn();
-echo "• Active Database: {$activeDb}\n";
+echo "• Active Database: " . ($activeDb ?: 'None') . "\n";
+
+if (!$activeDb) {
+    echo "• Warning: No database is currently accessible. Please ensure database permissions are granted.\n";
+    exit(0);
+}
 
 $hasTable = $pdo->query("SHOW TABLES LIKE 'permit_types'")->fetchColumn();
 if (!$hasTable) {
-    echo "• Database '{$activeDb}' is empty. Importing seed data...\n";
-    $seedFile = __DIR__ . '/database/clean_production_seed.sql';
-    if (!file_exists($seedFile)) {
-        $seedFile = __DIR__ . '/database/mgi_erp_dump.sql';
-    }
-    
-    if (file_exists($seedFile)) {
-        echo "• Importing schema and seed data from " . basename($seedFile) . "...\n";
-        $sql = file_get_contents($seedFile);
-        $pdo->exec($sql);
-        echo "✓ Database schema and seed data imported successfully.\n";
-    } else {
-        die("FATAL: Table 'permit_types' was not found in '{$activeDb}', and seed file was not found in " . __DIR__ . "/database/.\n");
-    }
+    echo "• Table 'permit_types' does not exist in '{$activeDb}'. Please import database/clean_production_seed.sql.\n";
+    exit(0);
 }
 
 // 1. Ensure primary types (1: Izin, 2: Sakit, 3: Cuti) exist
