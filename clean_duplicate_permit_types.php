@@ -6,41 +6,27 @@ require_once __DIR__ . '/backend/config/database.php';
 $pdo = getDbConnection();
 echo "Running Cleanup: Deduplicate permit_types and normalize configuration...\n";
 
-// Discover available databases and ensure we operate on mgi_erp
-$databases = $pdo->query("SHOW DATABASES")->fetchAll(PDO::FETCH_COLUMN);
-echo "• Available databases on MySQL server: " . implode(', ', $databases) . "\n";
-
-if (!in_array('mgi_erp', $databases)) {
-    echo "• Database 'mgi_erp' does not exist yet in accessible databases.\n";
-    try {
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `mgi_erp` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        echo "✓ Database 'mgi_erp' created successfully.\n";
-    } catch (Exception $e) {
-        echo "• Notice: User '" . DB_USER . "' does not have permission to CREATE DATABASE. Please create 'mgi_erp' via root.\n";
-    }
-}
-
-try {
-    $pdo->exec("USE `mgi_erp`");
-} catch (Exception $e) {
-    echo "• Note: Could not switch to 'mgi_erp': " . $e->getMessage() . "\n";
-    try {
-        $pdo->exec("USE `mgi_landing`");
-    } catch (Exception $e2) {}
-}
-
 $activeDb = $pdo->query("SELECT DATABASE()")->fetchColumn();
-echo "• Active Database: " . ($activeDb ?: 'None') . "\n";
+echo "• Active Database: {$activeDb}\n";
 
-if (!$activeDb) {
-    echo "• Warning: No database is currently accessible. Please ensure database permissions are granted.\n";
-    exit(0);
-}
-
+// 1. Check if ERP tables exist, if not automatically import clean_production_seed.sql
 $hasTable = $pdo->query("SHOW TABLES LIKE 'permit_types'")->fetchColumn();
 if (!$hasTable) {
-    echo "• Table 'permit_types' does not exist in '{$activeDb}'. Please import database/clean_production_seed.sql.\n";
-    exit(0);
+    echo "• Table 'permit_types' does not exist in '{$activeDb}'.\n";
+    $seedFile = __DIR__ . '/database/clean_production_seed.sql';
+    if (!file_exists($seedFile)) {
+        $seedFile = __DIR__ . '/database/mgi_erp_dump.sql';
+    }
+    
+    if (file_exists($seedFile)) {
+        echo "• Automatically importing ERP schema & seed data into '{$activeDb}' from " . basename($seedFile) . "...\n";
+        $sql = file_get_contents($seedFile);
+        $pdo->exec($sql);
+        echo "✓ Database schema and data imported successfully into '{$activeDb}'.\n";
+    } else {
+        echo "• Notice: seed file not found in " . __DIR__ . "/database/\n";
+        exit(0);
+    }
 }
 
 // 1. Ensure primary types (1: Izin, 2: Sakit, 3: Cuti) exist
