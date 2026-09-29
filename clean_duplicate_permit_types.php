@@ -10,29 +10,31 @@ echo "Running Cleanup: Deduplicate permit_types and normalize configuration...\n
 $databases = $pdo->query("SHOW DATABASES")->fetchAll(PDO::FETCH_COLUMN);
 echo "• Available databases on MySQL server: " . implode(', ', $databases) . "\n";
 
-if (in_array('mgi_erp', $databases)) {
-    echo "• Selecting database: 'mgi_erp'\n";
-    $pdo->exec("USE `mgi_erp`");
-} else {
-    foreach ($databases as $db) {
-        if (in_array($db, ['information_schema', 'mysql', 'performance_schema', 'sys'])) continue;
-        try {
-            $check = $pdo->query("SHOW TABLES FROM `{$db}` LIKE 'permit_types'")->fetchColumn();
-            if ($check) {
-                echo "• Found 'permit_types' in database: '{$db}'. Selecting it...\n";
-                $pdo->exec("USE `{$db}`");
-                break;
-            }
-        } catch (Exception $e) {}
-    }
+if (!in_array('mgi_erp', $databases)) {
+    echo "• Database 'mgi_erp' does not exist yet. Creating database 'mgi_erp'...\n";
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `mgi_erp` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 }
 
+$pdo->exec("USE `mgi_erp`");
 $activeDb = $pdo->query("SELECT DATABASE()")->fetchColumn();
 echo "• Active Database: {$activeDb}\n";
 
 $hasTable = $pdo->query("SHOW TABLES LIKE 'permit_types'")->fetchColumn();
 if (!$hasTable) {
-    die("FATAL: Table 'permit_types' was not found in '{$activeDb}'. Please ensure the ERP database is imported.\n");
+    echo "• Database '{$activeDb}' is empty. Importing seed data...\n";
+    $seedFile = __DIR__ . '/database/clean_production_seed.sql';
+    if (!file_exists($seedFile)) {
+        $seedFile = __DIR__ . '/database/mgi_erp_dump.sql';
+    }
+    
+    if (file_exists($seedFile)) {
+        echo "• Importing schema and seed data from " . basename($seedFile) . "...\n";
+        $sql = file_get_contents($seedFile);
+        $pdo->exec($sql);
+        echo "✓ Database schema and seed data imported successfully.\n";
+    } else {
+        die("FATAL: Table 'permit_types' was not found in '{$activeDb}', and seed file was not found in " . __DIR__ . "/database/.\n");
+    }
 }
 
 // 1. Ensure primary types (1: Izin, 2: Sakit, 3: Cuti) exist
