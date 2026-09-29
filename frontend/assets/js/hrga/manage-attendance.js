@@ -67,9 +67,13 @@ function syncDatesFromMonthYear() {
     const year = document.getElementById('filterYear').value;
     
     const startDate = `${year}-${month}-01`;
-    // Last day of month
-    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-    const endDate = `${year}-${month}-${lastDay.toString().padStart(2, '0')}`;
+    const now = new Date();
+    const isCurrentMonthYear = (parseInt(year, 10) === now.getFullYear() && parseInt(month, 10) === (now.getMonth() + 1));
+    let endDay = new Date(parseInt(year, 10), parseInt(month, 10), 0).getDate();
+    if (isCurrentMonthYear) {
+        endDay = Math.min(endDay, now.getDate());
+    }
+    const endDate = `${year}-${month}-${endDay.toString().padStart(2, '0')}`;
 
     document.getElementById('filterStartDate').value = startDate;
     document.getElementById('filterEndDate').value = endDate;
@@ -539,9 +543,13 @@ function exportPdf() {
             if (!checkInStr) return 0;
             const parts = checkInStr.split(':');
             if (parts.length < 2) return 0;
-            const mins = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-            const standardMins = 8 * 60; // Jam kantor 08:00 WIB
-            return Math.max(0, mins - standardMins);
+            const hour = parseInt(parts[0], 10);
+            const min = parseInt(parts[1], 10);
+            const sec = parts.length > 2 ? parseInt(parts[2], 10) : 0;
+            const totalSecs = hour * 3600 + min * 60 + sec;
+            const standardSecs = 8 * 3600; // Jam kantor 08:00:00 WIB
+            if (totalSecs <= standardSecs) return 0;
+            return Math.floor((totalSecs - standardSecs) / 60);
         }
 
         function formatLateDuration(mins) {
@@ -569,6 +577,7 @@ function exportPdf() {
                     total_attended: 0,
                     on_time: 0,
                     late: 0,
+                    total_late_minutes: 0,
                     izin: 0,
                     cuti: 0,
                     sakit: 0,
@@ -612,6 +621,7 @@ function exportPdf() {
             const isLateTime = (item.check_in && item.check_in > '08:00:59' && item.employee_email !== 'montanaglobalinvestamait@gmail.com');
             if (isLateStatus || isLateTime) {
                 const lateMins = parseLateMinutes(item.check_in);
+                usersMap[key].total_late_minutes += lateMins;
                 const durText = formatLateDuration(lateMins);
 
                 let lateIzinStatus = 'Tanpa Izin Terlambat';
@@ -686,6 +696,8 @@ function exportPdf() {
         let grandPermits = 0;
         let grandAbsent = 0;
 
+        const TOLERANCE_MINUTES = 60; // 60 menit batas toleransi keterlambatan bulanan
+
         userList.forEach(u => {
             grandAttended += u.total_attended;
             grandOnTime += u.on_time;
@@ -696,6 +708,20 @@ function exportPdf() {
             grandPermits += u.permits_total;
             grandAbsent += u.absent;
             u.records.sort((a, b) => (a.date > b.date ? 1 : -1));
+
+            // Toleransi Keterlambatan Bulanan (60 Menit)
+            u.total_late_minutes = u.total_late_minutes || 0;
+            u.tolerance_minutes = TOLERANCE_MINUTES;
+            u.remaining_tolerance = Math.max(0, TOLERANCE_MINUTES - u.total_late_minutes);
+            u.excess_late_minutes = Math.max(0, u.total_late_minutes - TOLERANCE_MINUTES);
+
+            if (u.late === 0 && u.total_late_minutes === 0) {
+                u.tolerance_status = 'Disiplin (0 Mnt)';
+            } else if (u.total_late_minutes <= TOLERANCE_MINUTES) {
+                u.tolerance_status = 'Dalam Toleransi';
+            } else {
+                u.tolerance_status = `Melebihi Toleransi (+${u.excess_late_minutes} Mnt)`;
+            }
         });
 
         const grandOnTimePct = grandAttended > 0 ? Math.round((grandOnTime / grandAttended) * 100) : 0;
@@ -893,9 +919,9 @@ function exportPdf() {
         currentY = doc.lastAutoTable.finalY + 8;
 
         // ----------------------------------------------------
-        // 5. BAGIAN II: FORMAT & RINCIAN KETERLAMBATAN PER PEGAWAI
+        // 5. BAGIAN II: REKAPITULASI & FORMAT KETERLAMBATAN PER PEGAWAI
         // ----------------------------------------------------
-        if (currentY > pageHeight - 50) {
+        if (currentY > pageHeight - 55) {
             doc.addPage();
             currentY = 16;
         }
@@ -903,20 +929,115 @@ function exportPdf() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(30, 41, 59);
-        doc.text("II. Rincian & Format Keterlambatan Jam Masuk Pegawai (Standar: 08:00 WIB)", margin, currentY);
+        doc.text("II. Rekapitulasi Toleransi Keterlambatan Pegawai (Standar: 08:00 WIB | Toleransi: 60 Menit)", margin, currentY);
 
         currentY += 4;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("Akumulasi menit keterlambatan pegawai terhadap kuota toleransi 60 menit per bulan beserta sisa & kelebihannya.", margin, currentY);
+
+        currentY += 3.5;
+
+        // Tabel II.A: Rekapitulasi Toleransi Keterlambatan Seluruh Pegawai
+        const toleranceTableData = userList.map((u, idx) => {
+            const sisaText = u.total_late_minutes === 0 
+                ? '60 Menit (Utuh)' 
+                : (u.remaining_tolerance > 0 ? `Sisa ${u.remaining_tolerance} Mnt` : '0 Menit (Habis)');
+            const lebihText = u.excess_late_minutes > 0 ? `+${u.excess_late_minutes} Menit` : '0 Menit (Nihil)';
+
+            return [
+                idx + 1,
+                u.name,
+                u.position,
+                u.late > 0 ? `${u.late}x` : '0x',
+                `${u.total_late_minutes} Menit`,
+                `${TOLERANCE_MINUTES} Menit`,
+                sisaText,
+                lebihText,
+                u.tolerance_status
+            ];
+        });
+
+        doc.autoTable({
+            startY: currentY,
+            head: [['No', 'Nama Pegawai', 'Jabatan / Posisi', 'Frekuensi', 'Total Terlambat', 'Toleransi', 'Sisa Toleransi', 'Kelebihan Menit', 'Status Evaluasi']],
+            body: toleranceTableData,
+            theme: 'striped',
+            styles: {
+                fontSize: 7.2,
+                cellPadding: 1.8,
+                lineColor: [226, 232, 240],
+                lineWidth: 0.1
+            },
+            headStyles: {
+                fillColor: [180, 83, 9], // Dark Amber / Warning Header
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'left'
+            },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 8 },
+                1: { cellWidth: 38 },
+                2: { cellWidth: 26 },
+                3: { halign: 'center', cellWidth: 16 },
+                4: { halign: 'center', cellWidth: 20, fontStyle: 'bold' },
+                5: { halign: 'center', cellWidth: 16 },
+                6: { halign: 'center', cellWidth: 18 },
+                7: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
+                8: { halign: 'center', cellWidth: 22, fontStyle: 'bold' }
+            },
+            alternateRowStyles: {
+                fillColor: [254, 252, 232] // Light warm amber tint
+            },
+            didParseCell: function(data) {
+                if (data.section === 'body') {
+                    const u = userList[data.row.index];
+                    if (u) {
+                        // Kolom Kelebihan Menit (index 7)
+                        if (data.column.index === 7 && u.excess_late_minutes > 0) {
+                            data.cell.styles.textColor = [185, 28, 28]; // Merah
+                        }
+                        // Kolom Status Evaluasi (index 8)
+                        if (data.column.index === 8) {
+                            if (u.excess_late_minutes > 0) {
+                                data.cell.styles.textColor = [185, 28, 28]; // Merah
+                            } else if (u.total_late_minutes > 0) {
+                                data.cell.styles.textColor = [180, 83, 9]; // Amber
+                            } else {
+                                data.cell.styles.textColor = [22, 101, 52]; // Hijau
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 6;
+
+        // Tabel II.B: Log Rincian Kejadian Keterlambatan Harian Pegawai
+        if (currentY > pageHeight - 45) {
+            doc.addPage();
+            currentY = 16;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text("Log Rincian Kejadian Keterlambatan Harian Pegawai:", margin, currentY);
+
+        currentY += 3.5;
 
         if (allLateRecords.length === 0) {
             // Box Nihil Keterlambatan
             doc.setFillColor(240, 253, 244);
             doc.setDrawColor(187, 247, 208);
-            doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 10, 1.2, 1.2, 'FD');
+            doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 9, 1.2, 1.2, 'FD');
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setTextColor(22, 101, 52);
-            doc.text("✓ Nihil. Tidak ada catatan keterlambatan pegawai pada periode ini (Seluruh kehadiran tepat waktu).", margin + 4, currentY + 6.5);
-            currentY += 15;
+            doc.text("✓ Nihil. Seluruh kehadiran tepat waktu, tidak ada log keterlambatan harian tercatat.", margin + 4, currentY + 5.5);
+            currentY += 13;
         } else {
             const lateRows = allLateRecords.map((l, lIdx) => [
                 lIdx + 1,
@@ -935,13 +1056,13 @@ function exportPdf() {
                 body: lateRows,
                 theme: 'grid',
                 styles: {
-                    fontSize: 7.2,
-                    cellPadding: 1.8,
+                    fontSize: 7,
+                    cellPadding: 1.6,
                     lineColor: [226, 232, 240],
                     lineWidth: 0.1
                 },
                 headStyles: {
-                    fillColor: [180, 83, 9], // Dark Amber / Warning Header
+                    fillColor: [120, 53, 15], // Darker Amber / Brown-Amber Header
                     textColor: [255, 255, 255],
                     fontStyle: 'bold',
                     halign: 'left'
