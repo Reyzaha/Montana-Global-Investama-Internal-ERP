@@ -11,8 +11,13 @@ $databases = $pdo->query("SHOW DATABASES")->fetchAll(PDO::FETCH_COLUMN);
 echo "• Available databases on MySQL server: " . implode(', ', $databases) . "\n";
 
 if (!in_array('mgi_erp', $databases)) {
-    echo "• Database 'mgi_erp' does not exist yet. Creating database 'mgi_erp'...\n";
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `mgi_erp` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    echo "• Database 'mgi_erp' does not exist yet in accessible databases.\n";
+    try {
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `mgi_erp` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        echo "✓ Database 'mgi_erp' created successfully.\n";
+    } catch (Exception $e) {
+        echo "• Notice: User '" . DB_USER . "' does not have permission to CREATE DATABASE. Please create 'mgi_erp' via root.\n";
+    }
 }
 
 $pdo->exec("USE `mgi_erp`");
